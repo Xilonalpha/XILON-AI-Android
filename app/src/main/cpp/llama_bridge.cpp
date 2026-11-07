@@ -75,6 +75,7 @@ Java_com_xilonalpha_xilonai_LocalLlama_generate(JNIEnv* env, jobject, jstring pr
             return env->NewStringUTF("Prompt evaluation failed");
     }
     llama_sampler* sampler = llama_sampler_init_greedy();
+    if (!sampler) return env->NewStringUTF("Sampler initialization failed");
     std::string output;
     for (int i = 0; i < limit; ++i) {
         const llama_token token = llama_sampler_sample(sampler, context, -1);
