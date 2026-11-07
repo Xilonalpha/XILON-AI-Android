@@ -164,7 +164,7 @@ private fun ModelExplorer() {
                                     downloadProgress = 0f
                                     thread(name = "gguf-download") {
                                         try {
-                                            val result = GgufDownloader.download(context, model.id, file.filename, file.sizeBytes, onProgress = { current, total ->
+                                            val result = GgufDownloader.download(context, model.id, file.filename, file.sizeBytes, expectedSha256 = file.expectedSha256, onProgress = { current, total ->
                                                 (context as ComponentActivity).runOnUiThread {
                                                     downloadProgress = current.toFloat() / total.toFloat()
                                                     downloadStatus = "$current / $total bytes"
