@@ -3,25 +3,48 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
-      - name: Install SDK
-        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'cmake;3.22.1' 'ndk;27.2.12479018'
+      - name: Diagnose Android SDK
+        run: |
+          set -euxo pipefail
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls -la "$ANDROID_HOME"
+          find "$ANDROID_HOME/cmdline-tools" -maxdepth 3 -name sdkmanager -type f -print || true
+          command -v sdkmanager || true
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | head -n 1)"
+          fi
+          test -n "$SDKMANAGER"
+          yes | "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --licenses > /dev/null || true
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" "platforms;android-35" "build-tools;35.0.0" "cmake;3.22.1" "ndk;27.2.12479018"
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
-      - name: Compile and lint
-        run: gradle --no-daemon --stacktrace :app:assembleDebug :app:lintDebug
+      - name: Compile APK
+        run: gradle --no-daemon --stacktrace :app:assembleDebug
+      - name: Run Android lint
+        run: gradle --no-daemon :app:lintDebug
       - name: Verify native libraries and APK
+        shell: bash
         run: |
           set -euo pipefail
           APK=$(find app/build/outputs/apk/debug -maxdepth 1 -name "*.apk" -print -quit)
@@ -29,6 +52,8 @@ jobs:
           unzip -l "$APK" | grep -E "lib/(arm64-v8a|x86_64)/libxilon_native.so"
           sha256sum "$APK"
       - uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: xilon-ai-debug-apk
           path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
