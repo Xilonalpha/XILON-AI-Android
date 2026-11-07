@@ -12,7 +12,7 @@ import android.provider.Settings
  * shell commands, arbitrary URLs or silent external side effects.
  */
 object XilonActions {
-    enum class Kind { SETTINGS, MUSIC, WEB_SEARCH, PLAY_PAUSE, NEXT_TRACK, PREVIOUS_TRACK, VOLUME_UP, VOLUME_DOWN, SHARE_MESSAGE }
+    enum class Kind { SETTINGS, MUSIC, WEB_SEARCH, PLAY_PAUSE, NEXT_TRACK, PREVIOUS_TRACK, VOLUME_UP, VOLUME_DOWN, SET_VOLUME, SHARE_MESSAGE }
     data class Proposal(val kind: Kind, val label: String, val explanation: String)
 
     fun propose(text: String): Proposal? {
@@ -57,10 +57,18 @@ object XilonActions {
 
     fun execute(context: Context, proposal: Proposal, originalMessage: String): Boolean {
         if (proposal.kind in setOf(Kind.PLAY_PAUSE, Kind.NEXT_TRACK,
-                Kind.PREVIOUS_TRACK, Kind.VOLUME_UP, Kind.VOLUME_DOWN)) {
+                Kind.PREVIOUS_TRACK, Kind.VOLUME_UP, Kind.VOLUME_DOWN, Kind.SET_VOLUME)) {
             return try {
                 val audio = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
                 when (proposal.kind) {
+                    Kind.SET_VOLUME -> {
+                        val percent = Regex("(\\\\d{1,3})\\\\s*%").find(originalMessage)
+                            ?.groupValues?.get(1)?.toIntOrNull() ?: return false
+                        if (percent !in 0..100) return false
+                        val max = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                        audio.setStreamVolume(AudioManager.STREAM_MUSIC,
+                            (max * percent + 50) / 100, 0)
+                    }
                     Kind.VOLUME_UP -> audio.adjustStreamVolume(AudioManager.STREAM_MUSIC,
                         AudioManager.ADJUST_RAISE, 0)
                     Kind.VOLUME_DOWN -> audio.adjustStreamVolume(AudioManager.STREAM_MUSIC,
@@ -90,7 +98,7 @@ object XilonActions {
                 }
             }
             Kind.PLAY_PAUSE, Kind.NEXT_TRACK, Kind.PREVIOUS_TRACK,
-            Kind.VOLUME_UP, Kind.VOLUME_DOWN -> return false
+            Kind.VOLUME_UP, Kind.VOLUME_DOWN, Kind.SET_VOLUME -> return false
             Kind.SETTINGS -> Intent(Settings.ACTION_SETTINGS)
             Kind.MUSIC -> Intent("android.intent.action.MUSIC_PLAYER")
             Kind.WEB_SEARCH -> {
