@@ -120,20 +120,20 @@ private fun XilonHome() {
             // Keep chat composed while browsing tabs: loaded GGUF state and active
             // generation must not be forgotten when navigating away from Chat.
             Box(Modifier.fillMaxSize()) {
-                Box(
-                    if (selected == 0) Modifier.fillMaxSize() else Modifier.size(0.dp)
-                ) { InstalledModelsScreen() }
+                Box(if (selected == 0) Modifier.fillMaxSize() else Modifier.size(0.dp)) {
+                    InstalledModelsScreen()
+                }
                 if (selected == 1) {
-                Column(
-                    Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) { ModelExplorer() }
-            } else {
-                Column(
-                    Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-                        .padding(horizontal = 18.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) { DeviceInfo() }
+                    Column(
+                        Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) { ModelExplorer() }
+                } else if (selected == 2) {
+                    Column(
+                        Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                            .padding(horizontal = 18.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) { DeviceInfo() }
                 }
             }
         }
