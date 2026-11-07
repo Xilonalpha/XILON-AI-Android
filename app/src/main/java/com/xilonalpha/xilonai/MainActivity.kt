@@ -320,6 +320,7 @@ private fun InstalledModelsScreen() {
     var loadingModel by remember { mutableStateOf<String?>(null) }
     var loadDurationMs by remember { mutableStateOf<Long?>(null) }
     var generationDurationMs by remember { mutableStateOf<Long?>(null) }
+    var outputTokenCount by remember { mutableStateOf<Int?>(null) }
     val models = remember(revision) { InstalledModels.list(context) }
     Text("Modele instalate", style = MaterialTheme.typography.titleLarge)
     Text("Modelele GGUF complete pot fi încărcate local. Fișierele imatrix nu sunt modele de conversație.")
@@ -327,7 +328,15 @@ private fun InstalledModelsScreen() {
     if (activeModel.isNotBlank()) {
         Text("Model activ: $activeModel")
         loadDurationMs?.let { Text("Timp de încărcare: $it ms") }
-        generationDurationMs?.let { Text("Timp ultima generare: $it ms (nu este măsurare tokens/secundă)") }
+        generationDurationMs?.let { elapsed ->
+            Text("Timp ultima generare: $elapsed ms")
+            val tokens = outputTokenCount
+            if (tokens != null && tokens > 0 && elapsed > 0) {
+                val throughput = tokens * 1000.0 / elapsed
+                Text("Viteză aproximativă: %.1f tokenuri/s · %d tokenuri".format(java.util.Locale.ROOT, throughput, tokens))
+                Text("Estimare end-to-end, include procesarea promptului; nu este benchmark de decodare pură.", style = MaterialTheme.typography.bodySmall)
+            }
+        }
         OutlinedTextField(value = prompt, onValueChange = { prompt = it }, label = { Text("Mesaj") }, modifier = Modifier.fillMaxWidth())
         Button(enabled = !busy && prompt.isNotBlank(), onClick = {
             busy = true
@@ -341,8 +350,10 @@ private fun InstalledModelsScreen() {
                 val startedAt = android.os.SystemClock.elapsedRealtime()
                 val result = runCatching { LocalLlama.generate(conversation, 128) }
                 val elapsed = android.os.SystemClock.elapsedRealtime() - startedAt
+                val tokenCount = result.getOrNull()?.let { runCatching { LocalLlama.countTokens(it) }.getOrNull() }
                 (context as ComponentActivity).runOnUiThread {
                     generationDurationMs = elapsed
+                    outputTokenCount = tokenCount
                     response = result.getOrElse { "Eroare: ${it.message}" }
                     if (result.isSuccess) chatHistory = chatHistory + (submitted to response)
                     busy = false
@@ -393,6 +404,7 @@ private fun InstalledModelsScreen() {
                             (context as ComponentActivity).runOnUiThread {
                                 loadDurationMs = if (loaded) elapsed else null
                                 generationDurationMs = null
+                                outputTokenCount = null
                                 activeModel = if (loaded) model.name else ""
                                 chatHistory = emptyList()
                                 response = if (loaded) "Model încărcat. Poți trimite un mesaj." else "Încărcarea a eșuat: ${attempt.exceptionOrNull()?.message ?: "format incompatibil, model incomplet sau memorie insuficientă"}."
