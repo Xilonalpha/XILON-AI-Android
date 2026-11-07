@@ -605,8 +605,8 @@ private fun InstalledModelsScreen() {
                 val observing = if (access) mediaObserver.start() else false
                 mediaStatus = when {
                     !access -> "Acces media neactivat. Spune «activează controlul media» pentru a deschide setările."
-                    !observing -> "Nicio sesiune media activă cu stare Play/Pause."
-                    else -> "Monitorizare activă: schimbările Play/Pause și metadatele sunt citite prin callback Android."
+                    !observing -> "Monitorizarea nu a putut fi activată. Verifică permisiunea Android."
+                    else -> "Monitorizare activă: XILON urmărește inclusiv apariția și schimbarea sesiunilor media."
                 }
             }) { Text("Verifică redarea") }
             if (mediaSnapshot != null) Text(mediaSnapshot!!.state,
