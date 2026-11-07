@@ -23,6 +23,14 @@ void unload() {
     if (context) { llama_free(context); context = nullptr; }
     if (model) { llama_model_free(model); model = nullptr; }
 }
+jstring fail(JNIEnv* env, const char* message) {
+    jclass exception = env->FindClass("java/lang/IllegalStateException");
+    if (exception) {
+        env->ThrowNew(exception, message);
+        env->DeleteLocalRef(exception);
+    }
+    return nullptr;
+}
 std::string utf8(JNIEnv* env, jstring value) {
     if (!value) return {};
     const char* chars = env->GetStringUTFChars(value, nullptr);
@@ -66,24 +74,24 @@ Java_com_xilonalpha_xilonai_LocalLlama_generate(JNIEnv* env, jobject, jstring pr
     std::lock_guard<std::mutex> lock(guard);
     last_prompt_ms = last_decode_ms = -1;
     last_generated_tokens = 0;
-    if (!model || !context) return env->NewStringUTF("Model not loaded");
+    if (!model || !context) return fail(env, "Model not loaded");
     const auto input = utf8(env, prompt);
     if (input.empty()) return env->NewStringUTF("");
     const llama_vocab* vocab = llama_model_get_vocab(model);
     const int probe = llama_tokenize(vocab, input.c_str(), static_cast<int32_t>(input.size()),
                                      nullptr, 0, true, false);
     const int required = probe < 0 ? -probe : probe;
-    if (required <= 0 || required > 32768) return env->NewStringUTF("Prompt too long");
+    if (required <= 0 || required > 32768) return fail(env, "Prompt too long");
     std::vector<llama_token> tokens(required);
     const int count = llama_tokenize(vocab, input.c_str(), static_cast<int32_t>(input.size()),
                                      tokens.data(), required, true, false);
     const int limit = std::max(1, std::min(512, static_cast<int>(max_tokens)));
-    if (count <= 0) return env->NewStringUTF("Tokenization failed");
+    if (count <= 0) return fail(env, "Tokenization failed");
     const int available = static_cast<int>(llama_n_ctx(context));
     // Do not truncate raw tokens: this can break special role markers and chat templates.
     // The Kotlin conversation builder must remove whole turns before generation.
     if (count + limit > available)
-        return env->NewStringUTF("Context limit exceeded: shorten conversation");
+        return fail(env, "Context limit exceeded: shorten conversation");
     const int effective_count = count;
     llama_memory_clear(llama_get_memory(context), true);
     const auto prompt_start = Clock::now();
@@ -91,13 +99,14 @@ Java_com_xilonalpha_xilonai_LocalLlama_generate(JNIEnv* env, jobject, jstring pr
     for (int i = 0; i < effective_count; i += chunk) {
         const int n = std::min(chunk, effective_count - i);
         if (llama_decode(context, llama_batch_get_one(tokens.data() + i, n)) != 0)
-            return env->NewStringUTF("Prompt evaluation failed");
+            return fail(env, "Prompt evaluation failed");
     }
     last_prompt_ms = millis(prompt_start);
     const auto decode_start = Clock::now();
     llama_sampler* sampler = llama_sampler_init_greedy();
-    if (!sampler) return env->NewStringUTF("Sampler initialization failed");
+    if (!sampler) return fail(env, "Sampler initialization failed");
     std::string output;
+    bool decode_failed = false;
     for (int i = 0; i < limit; ++i) {
         const llama_token token = llama_sampler_sample(sampler, context, -1);
         if (llama_vocab_is_eog(vocab, token)) break;
@@ -107,11 +116,15 @@ Java_com_xilonalpha_xilonai_LocalLlama_generate(JNIEnv* env, jobject, jstring pr
         if (n > 0) output.append(piece, n);
         if (i + 1 < limit) {
             llama_token next = token;
-            if (llama_decode(context, llama_batch_get_one(&next, 1)) != 0) break;
+            if (llama_decode(context, llama_batch_get_one(&next, 1)) != 0) {
+                decode_failed = true;
+                break;
+            }
         }
     }
     llama_sampler_free(sampler);
     last_decode_ms = millis(decode_start);
+    if (decode_failed) return fail(env, "Token decoding failed");
     return env->NewStringUTF(output.c_str());
 }
 
