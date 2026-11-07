@@ -388,7 +388,7 @@ private fun InstalledModelsScreen() {
     LaunchedEffect(chatHistory.size, response.length, activeModel) {
         if (activeModel.isNotBlank()) chatScrollState.scrollTo(chatScrollState.maxValue)
     }
-    val actionProposal = remember(prompt) { XilonActions.propose(prompt) }
+    val actionPlan = remember(prompt) { XilonActionPlanner.plan(prompt) }
     var actionFeedback by remember { mutableStateOf("") }
     val taskDecision = remember(prompt) { XilonCore.classify(prompt) }
     val suggestedModel = remember(revision, prompt) {
@@ -583,20 +583,25 @@ private fun InstalledModelsScreen() {
                     Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-        if (actionProposal != null) {
+        if (actionPlan != null) {
             Surface(color = MaterialTheme.colorScheme.secondaryContainer,
                 shape = RoundedCornerShape(14.dp)) {
                 Column(Modifier.fillMaxWidth().padding(12.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(actionProposal.label, style = MaterialTheme.typography.titleSmall,
+                    Text("Plan XILON Actions — ${actionPlan.steps.size} pași",
+                        style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer)
-                    Text(actionProposal.explanation,
+                    actionPlan.steps.forEachIndexed { index, step ->
+                        Text("${index + 1}. ${step.proposal.label}",
+                            color = MaterialTheme.colorScheme.onSecondaryContainer)
+                    }
+                    Text("Fiecare pas folosește permisiunile Android. Lansarea nu garantează rezultatul în aplicația externă.",
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer)
                     Button(enabled = !busy, onClick = {
-                        val launched = XilonActions.execute(context, actionProposal, prompt)
-                        actionFeedback = if (launched) "Acțiunea a fost trimisă către Android."
-                            else "Nu există o aplicație compatibilă sau acțiunea nu poate fi lansată."
-                    }) { Text("Confirmă acțiunea") }
+                        val completed = XilonActionPlanner.execute(context, actionPlan)
+                        actionFeedback = "Acțiuni trimise către Android: $completed / ${actionPlan.steps.size}. Verifică rezultatul în aplicațiile deschise."
+                    }) { Text("Confirmă și execută planul") }
                 }
             }
         }
