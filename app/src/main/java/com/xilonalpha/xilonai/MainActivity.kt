@@ -379,10 +379,11 @@ private fun InstalledModelsScreen() {
             val historySnapshot = recalledHistory + recentHistory
             val modelSnapshot = activeModel
             thread(name = "local-inference") {
+                try {
                 val startedAt = android.os.SystemClock.elapsedRealtime()
                 val conversation = ConversationBudget.fit(
                     history = historySnapshot,
-                    tokenBudget = 2048 - 128,
+                    tokenBudget = 2048 - 32,
                     render = { turns ->
                         val roles = mutableListOf("system")
                         val contents = mutableListOf("You are a helpful assistant.")
@@ -406,7 +407,7 @@ private fun InstalledModelsScreen() {
                 )
                 val result = if (conversation == null)
                     Result.failure<String>(IllegalArgumentException("Mesajul depășește contextul disponibil."))
-                else runCatching { LocalLlama.generate(conversation, 128) }
+                else runCatching { LocalLlama.generate(conversation, 32) }
                 val elapsed = android.os.SystemClock.elapsedRealtime() - startedAt
                 val tokenCount = result.getOrNull()?.let { runCatching { LocalLlama.countTokens(it) }.getOrNull() }
                 val timings = runCatching { LocalLlama.lastTimings() }.getOrNull()
@@ -430,6 +431,12 @@ private fun InstalledModelsScreen() {
                         if (saved?.isFailure == true) response += "\\nAtenție: istoricul nu a putut fi salvat local."
                     }
                     busy = false
+                }
+                } catch (error: Exception) {
+                    (context as ComponentActivity).runOnUiThread {
+                        response = "Eroare la generarea offline: ${error.message ?: error.javaClass.simpleName}"
+                        busy = false
+                    }
                 }
             }
         }) { Text("Generează offline") }
