@@ -369,6 +369,10 @@ private fun InstalledModelsScreen() {
     LaunchedEffect(chatHistory.size, response.length, activeModel) {
         if (activeModel.isNotBlank()) chatScrollState.scrollTo(chatScrollState.maxValue)
     }
+    val taskDecision = remember(prompt) { XilonCore.classify(prompt) }
+    val suggestedModel = remember(revision, prompt) {
+        XilonCore.suggestModel(taskDecision.task, InstalledModels.list(context).map { it.name })
+    }
     val models = remember(revision) { InstalledModels.list(context) }
     Column(Modifier.fillMaxSize().imePadding()) {
         Column(
@@ -558,6 +562,14 @@ private fun InstalledModelsScreen() {
                     Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
+        if (prompt.isNotBlank()) {
+            Text("XILON Core: ${taskDecision.explanation}", style = MaterialTheme.typography.labelSmall)
+            if (suggestedModel != null && suggestedModel != activeModel) {
+                Text("Model sugerat (orientativ): " + suggestedModel.take(42),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.secondary)
+            }
+        }
         OutlinedTextField(value = prompt, onValueChange = { prompt = it }, label = { Text("Mesaj pentru XILON AI") }, modifier = Modifier.fillMaxWidth(), maxLines = 4)
         Button(enabled = !busy && prompt.isNotBlank(), onClick = {
             busy = true
