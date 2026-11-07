@@ -40,6 +40,9 @@ object ModelCompatibility {
             val item = siblings.optJSONObject(index) ?: return@mapNotNull null
             val filename = item.optString("rfilename")
             if (!filename.endsWith(".gguf", ignoreCase = true)) return@mapNotNull null
+            // Importance matrices and auxiliary quantization data are not runnable models.
+            if (filename.contains("imatrix", ignoreCase = true) ||
+                filename.contains("importance_matrix", ignoreCase = true)) return@mapNotNull null
             val lfs = item.optJSONObject("lfs")
             val size = when {
                 item.has("size") && !item.isNull("size") -> item.optLong("size", -1L)
