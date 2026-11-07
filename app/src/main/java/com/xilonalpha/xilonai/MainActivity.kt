@@ -351,7 +351,7 @@ private fun InstalledModelsScreen() {
             title = { Text("Previzualizare HTML locală") },
             text = {
                 Column {
-                    Text("Previzualizare locală WebGL/HTML. Accesul la rețea și fișiere este blocat. Scenele care necesită biblioteci externe nu se pot încărca.")
+                    Text("Previzualizare locală WebGL/HTML. Accesul la rețea și fișiere este blocat. Three.js clasic este inclus local; alte biblioteci și module externe nu se încarcă.")
                     Spacer(Modifier.height(8.dp))
                     Box(Modifier.fillMaxWidth().height(360.dp)) {
                         XilonHtmlPreview(html)
@@ -490,6 +490,9 @@ private fun InstalledModelsScreen() {
         OutlinedButton(onClick = {
             previewHtml = XilonOffline3dDemo.html
         }) { Text("Testează cubul 3D offline") }
+        OutlinedButton(onClick = { previewHtml = XilonThreeDemo.html }) {
+            Text("Testează Three.js offline")
+        }
         val exportableHtml = XilonHtmlExport.extract(response)
             ?: chatHistory.lastOrNull()?.second?.let { XilonHtmlExport.extract(it) }
         if (!busy && exportableHtml != null) {
