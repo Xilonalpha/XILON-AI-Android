@@ -5,6 +5,8 @@ import android.os.Build
 import android.os.Bundle
 import android.os.StatFs
 import java.util.concurrent.atomic.AtomicBoolean
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -326,6 +328,25 @@ private fun InstalledModelsScreen() {
     var loadMemoryDeltaMiB by remember { mutableStateOf<Double?>(null) }
     var currentPssMiB by remember { mutableStateOf<Double?>(null) }
     var nativeHeapMiB by remember { mutableStateOf<Double?>(null) }
+    var importBusy by remember { mutableStateOf(false) }
+    var importMessage by remember { mutableStateOf("") }
+    val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            importBusy = true
+            importMessage = "Se copiază modelul în spațiul privat al aplicației…"
+            thread(name = "gguf-local-import") {
+                val result = runCatching { LocalModelImporter.import(context, uri) }
+                (context as ComponentActivity).runOnUiThread {
+                    importBusy = false
+                    importMessage = result.fold(
+                        onSuccess = { "Model importat: ${it.name}" },
+                        onFailure = { "Import eșuat: ${it.message}" }
+                    )
+                    if (result.isSuccess) revision++
+                }
+            }
+        }
+    }
     val models = remember(revision) { InstalledModels.list(context) }
     if (activeModel.isNotBlank()) {
         Text("Conversație cu XILON AI", style = MaterialTheme.typography.titleLarge)
@@ -344,6 +365,11 @@ private fun InstalledModelsScreen() {
     }
     Text("Modele instalate", style = MaterialTheme.typography.titleLarge)
     Text("Modelele GGUF complete pot fi încărcate local. Fișierele imatrix nu sunt modele de conversație.")
+    Button(enabled = !importBusy && !busy, onClick = {
+        filePicker.launch(arrayOf("application/octet-stream", "application/x-gguf", "*/*"))
+    }) { Text("Adaugă model GGUF din telefon") }
+    if (importBusy) LinearProgressIndicator(Modifier.fillMaxWidth())
+    if (importMessage.isNotBlank()) Text(importMessage, style = MaterialTheme.typography.bodySmall)
     OutlinedButton(onClick = { revision++ }) { Icon(Icons.Filled.Refresh, null); Spacer(Modifier.width(8.dp)); Text("Reîmprospătează") }
     if (activeModel.isNotBlank()) {
         Text("Model activ: " + activeModel.take(44) + if (activeModel.length > 44) "…" else "")
