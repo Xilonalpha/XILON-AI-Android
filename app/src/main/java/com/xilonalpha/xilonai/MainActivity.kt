@@ -342,6 +342,24 @@ private fun InstalledModelsScreen() {
     var prompt by remember { mutableStateOf("") }
     var maxResponseTokens by remember { mutableIntStateOf(1024) }
     var response by remember { mutableStateOf("") }
+    var htmlExportStatus by remember { mutableStateOf("") }
+    var pendingHtml by remember { mutableStateOf<String?>(null) }
+    val htmlSaver = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/html")
+    ) { uri ->
+        val html = pendingHtml
+        htmlExportStatus = if (uri != null && html != null) {
+            runCatching {
+                context.contentResolver.openOutputStream(uri)?.use {
+                    it.write(html.toByteArray(Charsets.UTF_8))
+                } ?: error("Nu pot deschide fișierul.")
+            }.fold(
+                onSuccess = { "Fișier HTML salvat. Deschide-l într-un browser compatibil." },
+                onFailure = { "Salvarea a eșuat: ${it.message}" }
+            )
+        } else "Salvarea a fost anulată."
+        pendingHtml = null
+    }
     var busy by remember { mutableStateOf(false) }
     val stopRequested = remember { AtomicBoolean(false) }
     var loadingModel by remember { mutableStateOf<String?>(null) }
@@ -450,6 +468,16 @@ private fun InstalledModelsScreen() {
                 color = MaterialTheme.colorScheme.surfaceVariant
             ) { Text(response, Modifier.padding(12.dp)) }
         }
+        val exportableHtml = XilonHtmlExport.extract(response)
+            ?: chatHistory.lastOrNull()?.second?.let { XilonHtmlExport.extract(it) }
+        if (!busy && exportableHtml != null) {
+            OutlinedButton(onClick = {
+                pendingHtml = exportableHtml
+                htmlSaver.launch("xilon-scena-3d.html")
+            }) { Text("Salvează scena HTML") }
+        }
+        if (htmlExportStatus.isNotBlank()) Text(htmlExportStatus,
+            style = MaterialTheme.typography.bodySmall)
         if (busy && loadingModel == null && response.isBlank()) {
             Text("XILON AI pregătește răspunsul…",
                 style = MaterialTheme.typography.bodySmall)
