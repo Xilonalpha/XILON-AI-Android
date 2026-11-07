@@ -497,37 +497,36 @@ private fun InstalledModelsScreen() {
         ) {
 
     if (activeModel.isNotBlank()) {
-        Text("Conversație", style = MaterialTheme.typography.titleLarge)
-        Text("Model: " + activeModel.take(36) + if (activeModel.length > 36) "…" else "",
-            style = MaterialTheme.typography.bodySmall)
-        if (chatHistory.isEmpty() && response.isBlank()) {
-            Text("Scrie un mesaj pentru a începe conversația.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("XILON AI", style = MaterialTheme.typography.titleMedium)
+                Text("AI local · " + activeModel.take(32),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            TextButton(onClick = { showChatSettings = !showChatSettings }) {
+                Text("Opțiuni")
+            }
+        }
+        if (chatHistory.isEmpty() && response.isBlank() && !busy) {
+            Column(Modifier.fillMaxWidth().padding(vertical = 36.dp),
+                horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(Icons.Filled.AutoAwesome, contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(36.dp))
+                Spacer(Modifier.height(12.dp))
+                Text("Cu ce te pot ajuta?", style = MaterialTheme.typography.headlineSmall)
+                Text("Conversația rămâne pe dispozitiv.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
         chatHistory.takeLast(12).forEach { (question, answer) ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(0.88f),
-                    shape = RoundedCornerShape(18.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer
-                ) { Text(question, Modifier.padding(12.dp)) }
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(0.92f),
-                    shape = RoundedCornerShape(18.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant
-                ) { Text(answer, Modifier.padding(12.dp)) }
-            }
+            XilonChatBubble(question, isUser = true)
+            XilonChatBubble(answer, isUser = false)
         }
         if (response.isNotBlank() && (busy || chatHistory.lastOrNull()?.second != response)) {
-            Text(if (busy) "XILON AI scrie…" else "XILON AI",
-                style = MaterialTheme.typography.labelSmall)
-            Surface(
-                modifier = Modifier.fillMaxWidth(0.92f),
-                shape = RoundedCornerShape(18.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant
-            ) { Text(response, Modifier.padding(12.dp)) }
+            XilonChatBubble(response, isUser = false)
         }
         OutlinedButton(onClick = {
             previewHtml = XilonOffline3dDemo.html
@@ -790,7 +789,14 @@ private fun InstalledModelsScreen() {
                     color = MaterialTheme.colorScheme.secondary)
             }
         }
-        OutlinedTextField(value = prompt, onValueChange = { prompt = it }, label = { Text("Mesaj pentru XILON AI") }, modifier = Modifier.fillMaxWidth(), maxLines = 4)
+        OutlinedTextField(
+            value = prompt,
+            onValueChange = { prompt = it },
+            placeholder = { Text("Întreabă XILON AI…") },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(28.dp),
+            maxLines = 5
+        )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically) {
             OutlinedButton(enabled = !busy, onClick = {
@@ -918,5 +924,38 @@ private fun InstalledModelsScreen() {
             },
             dismissButton = { TextButton(onClick = { confirmDelete = null }) { Text("Anulează") } }
         )
+    }
+}
+
+@Composable
+private fun XilonChatBubble(message: String, isUser: Boolean) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
+    ) {
+        if (isUser) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(0.85f),
+                shape = RoundedCornerShape(22.dp),
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                Text(message, modifier = Modifier.padding(14.dp),
+                    style = MaterialTheme.typography.bodyLarge)
+            }
+        } else {
+            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.AutoAwesome, contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("XILON AI", style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(message, style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(start = 26.dp, end = 8.dp))
+            }
+        }
     }
 }
