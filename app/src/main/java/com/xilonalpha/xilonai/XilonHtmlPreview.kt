@@ -43,6 +43,12 @@ fun XilonHtmlPreview(html: String) {
                                 context.assets.open("three/three.min.js")
                             )
                         }
+                        if (request?.url?.toString() == "https://xilon-preview.invalid/three-module-adapter.js") {
+                            return WebResourceResponse(
+                                "application/javascript", "UTF-8",
+                                context.assets.open("three/three-module-adapter.js")
+                            )
+                        }
                         return WebResourceResponse(
                             "text/plain", "UTF-8", ByteArrayInputStream(ByteArray(0))
                         )
