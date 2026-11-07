@@ -734,7 +734,7 @@ private fun InstalledModelsScreen() {
     }
     }
         }
-        if (activeModel.isNotBlank()) {
+        // The voice/action composer is available even without a loaded GGUF model.
             Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 4.dp) {
                 Column(
                     Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
@@ -855,7 +855,8 @@ private fun InstalledModelsScreen() {
                 }
             }
         }
-        Button(enabled = !busy && prompt.isNotBlank(), onClick = {
+        if (activeModel.isBlank()) Text("Comenzi Android disponibile fără model GGUF. Pentru chat, încarcă un model.", style = MaterialTheme.typography.labelSmall)
+        Button(enabled = !busy && activeModel.isNotBlank() && prompt.isNotBlank(), onClick = {
             stopRequested.set(false)
             generationStartedAt = android.os.SystemClock.elapsedRealtime()
             generationElapsedMs = 0L
@@ -979,7 +980,6 @@ private fun InstalledModelsScreen() {
         }
                 }
             }
-        }
     }
     confirmDelete?.let { filename ->
         AlertDialog(
