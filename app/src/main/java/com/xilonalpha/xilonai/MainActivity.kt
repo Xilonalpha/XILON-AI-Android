@@ -1,5 +1,8 @@
 package com.xilonalpha.xilonai
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
 import android.app.ActivityManager
 import android.os.Build
 import android.os.Bundle
@@ -321,6 +324,9 @@ private fun DeviceInfo() {
 @Composable
 private fun InstalledModelsScreen() {
     val context = LocalContext.current
+    val voice = remember(context) { XilonVoice(context) }
+    var voiceStatus by remember { mutableStateOf("") }
+    DisposableEffect(voice) { onDispose { voice.stop() } }
     var revision by remember { mutableIntStateOf(0) }
     var confirmDelete by remember { mutableStateOf<String?>(null) }
     var activeModel by remember { mutableStateOf("") }
@@ -342,6 +348,15 @@ private fun InstalledModelsScreen() {
     var importMessage by remember { mutableStateOf("") }
     var showModelManager by remember { mutableStateOf(true) }
     var showChatSettings by remember { mutableStateOf(false) }
+    val microphonePermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            runCatching {
+                voice.listen(onText = { prompt = it }, onStatus = { voiceStatus = it })
+            }.onFailure { voiceStatus = "Microfon indisponibil: ${it.message}" }
+        } else voiceStatus = "Permisiunea pentru microfon a fost refuzată."
+    }
     val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             importBusy = true
@@ -596,6 +611,22 @@ private fun InstalledModelsScreen() {
             }
         }
         OutlinedTextField(value = prompt, onValueChange = { prompt = it }, label = { Text("Mesaj pentru XILON AI") }, modifier = Modifier.fillMaxWidth(), maxLines = 4)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            OutlinedButton(enabled = !busy, onClick = {
+                if (!voice.available()) {
+                    voiceStatus = "Acest Android nu oferă recunoaștere vocală complet locală."
+                } else if (ContextCompat.checkSelfPermission(context,
+                        Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                    runCatching {
+                        voice.listen(onText = { prompt = it }, onStatus = { voiceStatus = it })
+                    }.onFailure { voiceStatus = "Eroare voce: ${it.message}" }
+                } else microphonePermission.launch(Manifest.permission.RECORD_AUDIO)
+            }) { Text("Dictează offline") }
+            if (voiceStatus.isNotBlank()) Text(voiceStatus,
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.weight(1f))
+        }
         Button(enabled = !busy && prompt.isNotBlank(), onClick = {
             stopRequested.set(false)
             busy = true
