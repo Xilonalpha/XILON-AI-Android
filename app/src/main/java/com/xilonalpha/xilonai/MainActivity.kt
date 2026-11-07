@@ -333,9 +333,8 @@ private fun InstalledModelsScreen() {
                         runCatching { NativeGgufProbe.inspect(model) }.getOrNull()
                     }
                     Text(if (header != null) "GGUF v${header.version} · ${header.tensorCount} tensori · ${header.metadataCount} metadate" else "GGUF: antet invalid sau bibliotecă nativă indisponibilă")
-                    val auxiliary = model.name.contains("imatrix", ignoreCase = true) ||
-                        model.name.contains("importance_matrix", ignoreCase = true)
-                    if (auxiliary) Text("Fișier auxiliar imatrix: nu este un model AI executabil.", color = MaterialTheme.colorScheme.error)
+                    val auxiliary = AuxiliaryGguf.isAuxiliary(model.name)
+                    if (auxiliary) Text("Fișier auxiliar (proiector multimodal sau imatrix): nu poate rula singur ca model de chat.", color = MaterialTheme.colorScheme.error)
                     Button(enabled = !busy && !auxiliary, onClick = {
                         busy = true
                         loadingModel = model.name
