@@ -39,7 +39,12 @@ object ModelCompatibility {
             val item = siblings.optJSONObject(index) ?: return@mapNotNull null
             val filename = item.optString("rfilename")
             if (!filename.endsWith(".gguf", ignoreCase = true)) return@mapNotNull null
-            val size = item.optLong("size", -1L)
+            val lfs = item.optJSONObject("lfs")
+            val size = when {
+                item.has("size") && !item.isNull("size") -> item.optLong("size", -1L)
+                lfs != null && lfs.has("size") -> lfs.optLong("size", -1L)
+                else -> -1L
+            }
             // Conservative heuristic, not a runtime memory guarantee:
             // weights + 35% for working buffers + 512 MiB fixed overhead.
             val estimated = if (size > 0 && size <= (Long.MAX_VALUE - 512L * MIB) / 2L)
