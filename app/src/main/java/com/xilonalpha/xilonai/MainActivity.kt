@@ -356,14 +356,25 @@ private fun InstalledModelsScreen() {
         Button(enabled = !busy && prompt.isNotBlank(), onClick = {
             busy = true
             val submitted = prompt
-            val conversation = buildString {
+            val historySnapshot = chatHistory.takeLast(4)
+            val fallbackConversation = buildString {
                 append("You are a helpful assistant.\\n")
-                chatHistory.takeLast(4).forEach { (q, a) -> append("User: ").append(q).append("\\nAssistant: ").append(a).append("\\n") }
+                historySnapshot.forEach { (q, a) -> append("User: ").append(q).append("\\nAssistant: ").append(a).append("\\n") }
                 append("User: ").append(submitted).append("\\nAssistant:")
             }
             thread(name = "local-inference") {
                 val startedAt = android.os.SystemClock.elapsedRealtime()
-                val result = runCatching { LocalLlama.generate(conversation, 128) }
+                val roles = mutableListOf("system")
+                val contents = mutableListOf("You are a helpful assistant.")
+                historySnapshot.forEach { (question, answer) ->
+                    roles.add("user"); contents.add(question)
+                    roles.add("assistant"); contents.add(answer)
+                }
+                roles.add("user"); contents.add(submitted)
+                val formatted = runCatching {
+                    LocalLlama.formatChat(roles.toTypedArray(), contents.toTypedArray())
+                }.getOrNull()
+                val result = runCatching { LocalLlama.generate(formatted ?: fallbackConversation, 128) }
                 val elapsed = android.os.SystemClock.elapsedRealtime() - startedAt
                 val tokenCount = result.getOrNull()?.let { runCatching { LocalLlama.countTokens(it) }.getOrNull() }
                 val timings = runCatching { LocalLlama.lastTimings() }.getOrNull()
