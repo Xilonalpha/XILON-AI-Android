@@ -9,7 +9,7 @@
   <service android:name=".XilonMediaListener"
       android:label="XILON — control multimedia"
       android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
-      android:exported="false">
+      android:exported="true">
    <intent-filter><action android:name="android.service.notification.NotificationListenerService"/></intent-filter>
   </service>
  </application>
