@@ -332,6 +332,8 @@ private fun InstalledModelsScreen() {
     var nativeHeapMiB by remember { mutableStateOf<Double?>(null) }
     var importBusy by remember { mutableStateOf(false) }
     var importMessage by remember { mutableStateOf("") }
+    var showModelManager by remember { mutableStateOf(true) }
+    var showChatSettings by remember { mutableStateOf(false) }
     val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             importBusy = true
@@ -361,8 +363,8 @@ private fun InstalledModelsScreen() {
     }
     val models = remember(revision) { InstalledModels.list(context) }
     if (activeModel.isNotBlank()) {
-        Text("Conversație cu XILON AI", style = MaterialTheme.typography.titleLarge)
-        Text("Model: " + activeModel.take(44) + if (activeModel.length > 44) "…" else "", style = MaterialTheme.typography.bodySmall)
+        Text("Conversație", style = MaterialTheme.typography.titleLarge)
+        Text("Model: " + activeModel.take(36) + if (activeModel.length > 36) "…" else "", style = MaterialTheme.typography.bodySmall)
         if (response.isNotBlank()) {
             Text("Ultimul răspuns", style = MaterialTheme.typography.titleMedium)
             androidx.compose.material3.Surface(
@@ -376,7 +378,7 @@ private fun InstalledModelsScreen() {
         if (busy && loadingModel == null) Text("XILON AI generează răspunsul local…")
     }
     if (activeModel.isNotBlank()) {
-        Text("Model activ: " + activeModel.take(44) + if (activeModel.length > 44) "…" else "")
+
         var showDiagnostics by remember { mutableStateOf(false) }
         TextButton(onClick = { showDiagnostics = !showDiagnostics }) {
             Text(if (showDiagnostics) "Ascunde statisticile tehnice" else "Arată statisticile tehnice")
@@ -404,6 +406,10 @@ private fun InstalledModelsScreen() {
             }
         }
         }
+        TextButton(onClick = { showChatSettings = !showChatSettings }) {
+            Text(if (showChatSettings) "Ascunde opțiunile conversației" else "Opțiuni conversație și memorie")
+        }
+        if (showChatSettings) {
         Text("Memorie locală privată", style = MaterialTheme.typography.labelMedium)
         OutlinedButton(enabled = !busy, onClick = {
             val modelName = activeModel
@@ -430,6 +436,7 @@ private fun InstalledModelsScreen() {
                     OutlinedButton(enabled = !busy, onClick = { maxResponseTokens = count }) { Text("$count") }
                 }
             }
+        }
         }
         OutlinedTextField(value = prompt, onValueChange = { prompt = it }, label = { Text("Mesaj") }, modifier = Modifier.fillMaxWidth())
         Button(enabled = !busy && prompt.isNotBlank(), onClick = {
@@ -520,6 +527,12 @@ private fun InstalledModelsScreen() {
         }
     }
     HorizontalDivider()
+    OutlinedButton(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = { showModelManager = !showModelManager }
+    ) { Text(if (showModelManager) "Ascunde gestionarea modelelor" else "Gestionează modelele GGUF") }
+    if (showModelManager) {
+    HorizontalDivider()
     Text("Gestionare modele", style = MaterialTheme.typography.titleMedium)
     Text("Modele instalate", style = MaterialTheme.typography.titleLarge)
     Text("Modelele GGUF complete pot fi încărcate local. Fișierele imatrix nu sunt modele de conversație.")
@@ -573,7 +586,8 @@ private fun InstalledModelsScreen() {
                                 nativeTimings = null
                                 activeModel = if (loaded) model.name else ""
                                 chatHistory = storedHistory
-                                response = if (loaded) "Model încărcat. Poți trimite un mesaj." else "Încărcarea a eșuat: ${attempt.exceptionOrNull()?.message ?: "format incompatibil, model incomplet sau memorie insuficientă"}."
+                                if (loaded) showModelManager = false
+                                response = if (loaded) "" else "Încărcarea a eșuat: ${attempt.exceptionOrNull()?.message ?: "format incompatibil, model incomplet sau memorie insuficientă"}."
                                 busy = false
                                 loadingModel = null
                             }
@@ -583,6 +597,7 @@ private fun InstalledModelsScreen() {
                 }
             }
         }
+    }
     }
     confirmDelete?.let { filename ->
         AlertDialog(
