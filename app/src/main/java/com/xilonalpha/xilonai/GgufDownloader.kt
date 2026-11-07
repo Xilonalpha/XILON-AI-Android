@@ -5,6 +5,7 @@ import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
+import java.io.RandomAccessFile
 
 /**
  * Blocking downloader. Invoke from a background worker, never from the UI thread.
@@ -21,7 +22,8 @@ object GgufDownloader {
         filename: String,
         expectedBytes: Long,
         expectedSha256: String? = null,
-        onProgress: (Long, Long) -> Unit = { _, _ -> }
+        onProgress: (Long, Long) -> Unit = { _, _ -> },
+        isCancelled: () -> Boolean = { false }
     ): Result {
         require(modelId.matches(Regex("[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")))
         require(filename.endsWith(".gguf", true))
@@ -35,7 +37,7 @@ object GgufDownloader {
         if (target.exists() && target.length() != expectedBytes) check(target.delete()) { "Unable to remove invalid existing file" }
         if (target.exists() && target.length() == expectedBytes) {
             val hash = sha256(target)
-            if (expectedSha256 == null || hash.equals(expectedSha256, true)) return Result(target, hash)
+            if ((expectedSha256 == null || hash.equals(expectedSha256, true)) && validGguf(target)) return Result(target, hash)
             check(target.delete()) { "Unable to delete corrupt model" }
         }
         var offset = partial.takeIf { it.exists() }?.length() ?: 0L
@@ -50,6 +52,7 @@ object GgufDownloader {
         connection.setRequestProperty("Accept-Encoding", "identity")
         if (offset > 0) connection.setRequestProperty("Range", "bytes=$offset-")
         try {
+            if (isCancelled()) throw java.util.concurrent.CancellationException("Download cancelled")
             val status = connection.responseCode
             check(status == 200 || status == 206) { "Download HTTP $status" }
             val append = offset > 0 && status == 206 &&
@@ -62,6 +65,7 @@ object GgufDownloader {
                     val buffer = ByteArray(64 * 1024)
                     var written = offset
                     while (true) {
+                        if (isCancelled()) throw java.util.concurrent.CancellationException("Download cancelled")
                         val count = input.read(buffer)
                         if (count < 0) break
                         output.write(buffer, 0, count)
@@ -72,12 +76,24 @@ object GgufDownloader {
                 }
             }
             check(partial.length() == expectedBytes) { "Incomplete download" }
+            check(validGguf(partial)) { "Invalid GGUF header" }
             val hash = sha256(partial)
             check(expectedSha256 == null || hash.equals(expectedSha256, true)) { "SHA-256 mismatch" }
             check(partial.renameTo(target)) { "Cannot finalize model file" }
             return Result(target, hash)
         } finally {
             connection.disconnect()
+        }
+    }
+
+    private fun validGguf(file: File): Boolean {
+        if (file.length() < 24L) return false
+        return RandomAccessFile(file, "r").use { input ->
+            val header = ByteArray(8)
+            input.readFully(header)
+            val version = (header[4].toInt() and 255) or ((header[5].toInt() and 255) shl 8) or
+                ((header[6].toInt() and 255) shl 16) or ((header[7].toInt() and 255) shl 24)
+            header.copyOfRange(0, 4).contentEquals(byteArrayOf(71, 71, 85, 70)) && version in 2..3
         }
     }
 
