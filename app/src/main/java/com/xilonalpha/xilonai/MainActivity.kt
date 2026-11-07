@@ -11,6 +11,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.graphics.Brush
@@ -89,7 +91,7 @@ private fun XilonHome() {
             Column(
                 Modifier.fillMaxWidth().background(
                     Brush.linearGradient(listOf(Color(0xFF4733A4), Color(0xFF1D315C), XilonDark))
-                ).padding(horizontal = 22.dp, vertical = 22.dp)
+                ).padding(horizontal = 18.dp, vertical = 12.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Surface(color = Color.White.copy(alpha = 0.14f), shape = RoundedCornerShape(16.dp)) {
@@ -102,7 +104,7 @@ private fun XilonHome() {
                             style = MaterialTheme.typography.bodySmall)
                     }
                 }
-                Spacer(Modifier.height(18.dp))
+                Spacer(Modifier.height(6.dp))
                 Text(
                     when (selected) {
                         0 -> "Spațiul tău de conversație"
@@ -112,7 +114,7 @@ private fun XilonHome() {
                     style = MaterialTheme.typography.titleMedium, color = Color.White
                 )
             }
-            Column(Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 12.dp)) {
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 when (selected) {
                     0 -> InstalledModelsScreen()
                     1 -> ModelExplorer()
@@ -517,7 +519,6 @@ private fun InstalledModelsScreen() {
             }
         }) { Text("Generează offline") }
         if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-        Text(response)
         if (chatHistory.isNotEmpty()) {
             Text("Istoric conversație", style = MaterialTheme.typography.titleMedium)
             chatHistory.takeLast(6).forEach { (question, answer) ->
@@ -534,8 +535,8 @@ private fun InstalledModelsScreen() {
     if (models.isEmpty()) {
         Text("Niciun model instalat. Deschide fila Modele pentru descărcare.")
     }
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        items(models, key = { it.absolutePath }) { model ->
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        models.forEach { model ->
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp)) {
                     Text(model.name, style = MaterialTheme.typography.titleSmall)
