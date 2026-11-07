@@ -117,9 +117,13 @@ private fun XilonHome() {
                     style = MaterialTheme.typography.titleMedium, color = Color.White
                 )
             }
-            if (selected == 0) {
-                InstalledModelsScreen()
-            } else if (selected == 1) {
+            // Keep chat composed while browsing tabs: loaded GGUF state and active
+            // generation must not be forgotten when navigating away from Chat.
+            Box(Modifier.fillMaxSize()) {
+                Box(
+                    if (selected == 0) Modifier.fillMaxSize() else Modifier.size(0.dp)
+                ) { InstalledModelsScreen() }
+                if (selected == 1) {
                 Column(
                     Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -130,6 +134,7 @@ private fun XilonHome() {
                         .padding(horizontal = 18.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) { DeviceInfo() }
+                }
             }
         }
     }
@@ -335,7 +340,7 @@ private fun InstalledModelsScreen() {
     var activeModel by remember { mutableStateOf("") }
     var chatHistory by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
     var prompt by remember { mutableStateOf("") }
-    var maxResponseTokens by remember { mutableIntStateOf(16) }
+    var maxResponseTokens by remember { mutableIntStateOf(64) }
     var response by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     val stopRequested = remember { AtomicBoolean(false) }
@@ -495,7 +500,7 @@ private fun InstalledModelsScreen() {
         }) { Text("Șterge istoricul conversației") }
         Text("Lungimea răspunsului", style = MaterialTheme.typography.bodySmall)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(16, 32, 64).forEach { count ->
+            listOf(64, 128, 256).forEach { count ->
                 if (maxResponseTokens == count) {
                     Button(enabled = !busy, onClick = { maxResponseTokens = count }) { Text("$count") }
                 } else {
