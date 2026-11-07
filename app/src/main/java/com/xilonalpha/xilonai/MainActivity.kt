@@ -375,18 +375,41 @@ private fun InstalledModelsScreen() {
 
     if (activeModel.isNotBlank()) {
         Text("Conversație", style = MaterialTheme.typography.titleLarge)
-        Text("Model: " + activeModel.take(36) + if (activeModel.length > 36) "…" else "", style = MaterialTheme.typography.bodySmall)
-        if (response.isNotBlank()) {
-            Text("Ultimul răspuns", style = MaterialTheme.typography.titleMedium)
-            androidx.compose.material3.Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.surfaceVariant
-            ) {
-                Text(response, modifier = Modifier.padding(16.dp))
+        Text("Model: " + activeModel.take(36) + if (activeModel.length > 36) "…" else "",
+            style = MaterialTheme.typography.bodySmall)
+        if (chatHistory.isEmpty() && response.isBlank()) {
+            Text("Scrie un mesaj pentru a începe conversația.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        chatHistory.takeLast(12).forEach { (question, answer) ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(0.88f),
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer
+                ) { Text(question, Modifier.padding(12.dp)) }
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(0.92f),
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant
+                ) { Text(answer, Modifier.padding(12.dp)) }
             }
         }
-        if (busy && loadingModel == null) Text("XILON AI generează răspunsul local…")
+        if (response.isNotBlank() && (busy || chatHistory.lastOrNull()?.second != response)) {
+            Text(if (busy) "XILON AI scrie…" else "XILON AI",
+                style = MaterialTheme.typography.labelSmall)
+            Surface(
+                modifier = Modifier.fillMaxWidth(0.92f),
+                shape = RoundedCornerShape(18.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant
+            ) { Text(response, Modifier.padding(12.dp)) }
+        }
+        if (busy && loadingModel == null && response.isBlank()) {
+            Text("XILON AI pregătește răspunsul…",
+                style = MaterialTheme.typography.bodySmall)
+        }
     }
     if (activeModel.isNotBlank()) {
 
@@ -450,13 +473,6 @@ private fun InstalledModelsScreen() {
         }
         }
         if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-        if (chatHistory.isNotEmpty()) {
-            Text("Istoric conversație", style = MaterialTheme.typography.titleMedium)
-            chatHistory.takeLast(6).forEach { (question, answer) ->
-                Text("Tu: $question")
-                Text("AI: $answer")
-            }
-        }
     }
     HorizontalDivider()
     OutlinedButton(
