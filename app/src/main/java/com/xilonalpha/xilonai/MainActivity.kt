@@ -357,7 +357,9 @@ private fun InstalledModelsScreen() {
         Button(enabled = !busy && prompt.isNotBlank(), onClick = {
             busy = true
             val submitted = prompt
-            val historySnapshot = chatHistory.takeLast(4)
+            val completeHistorySnapshot = chatHistory
+            val historySnapshot = completeHistorySnapshot.takeLast(4)
+            val modelSnapshot = activeModel
             thread(name = "local-inference") {
                 val startedAt = android.os.SystemClock.elapsedRealtime()
                 val conversation = ConversationBudget.fit(
@@ -391,11 +393,11 @@ private fun InstalledModelsScreen() {
                 val tokenCount = result.getOrNull()?.let { runCatching { LocalLlama.countTokens(it) }.getOrNull() }
                 val timings = runCatching { LocalLlama.lastTimings() }.getOrNull()
                 val memoryAfter = InferenceProfiler.snapshot()
-                val nextHistory = if (result.isSuccess) historySnapshot.let {
-                    chatHistory + (submitted to result.getOrThrow())
-                } else emptyList()
+                val nextHistory = if (result.isSuccess)
+                    completeHistorySnapshot + (submitted to result.getOrThrow())
+                else emptyList()
                 val saved = if (result.isSuccess) runCatching {
-                    LocalConversationStore.save(context, activeModel, nextHistory)
+                    LocalConversationStore.save(context, modelSnapshot, nextHistory)
                 } else null
                 (context as ComponentActivity).runOnUiThread {
                     generationDurationMs = elapsed
