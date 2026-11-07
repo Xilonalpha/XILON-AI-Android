@@ -344,6 +344,24 @@ private fun InstalledModelsScreen() {
     var response by remember { mutableStateOf("") }
     var htmlExportStatus by remember { mutableStateOf("") }
     var pendingHtml by remember { mutableStateOf<String?>(null) }
+    var pendingObj by remember { mutableStateOf<String?>(null) }
+    var objExportStatus by remember { mutableStateOf("") }
+    val objSaver = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/octet-stream")
+    ) { uri ->
+        val mesh = pendingObj
+        objExportStatus = if (uri != null && mesh != null) {
+            runCatching {
+                context.contentResolver.openOutputStream(uri)?.use {
+                    it.write(mesh.toByteArray(Charsets.UTF_8))
+                } ?: error("Nu pot deschide fișierul OBJ.")
+            }.fold(
+                onSuccess = { "Geometria OBJ a fost salvată." },
+                onFailure = { "Export OBJ eșuat: ${it.message}" }
+            )
+        } else "Export OBJ anulat."
+        pendingObj = null
+    }
     var previewHtml by remember { mutableStateOf<String?>(null) }
     previewHtml?.let { html ->
         AlertDialog(
@@ -509,6 +527,16 @@ private fun InstalledModelsScreen() {
                 }
             }
         }
+        val exportableObj = XilonObjExport.extract(response)
+            ?: chatHistory.lastOrNull()?.second?.let { XilonObjExport.extract(it) }
+        if (!busy && exportableObj != null) {
+            OutlinedButton(onClick = {
+                pendingObj = exportableObj
+                objSaver.launch("xilon-model-3d.obj")
+            }) { Text("Salvează model OBJ") }
+        }
+        if (objExportStatus.isNotBlank()) Text(objExportStatus,
+            style = MaterialTheme.typography.bodySmall)
         if (htmlExportStatus.isNotBlank()) Text(htmlExportStatus,
             style = MaterialTheme.typography.bodySmall)
         if (busy && loadingModel == null && response.isBlank()) {
