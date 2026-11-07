@@ -67,7 +67,7 @@ Java_com_xilonalpha_xilonai_LocalLlama_generate(JNIEnv* env, jobject, jstring pr
     const int limit = std::max(1, std::min(512, static_cast<int>(max_tokens)));
     if (count <= 0 || count + limit > static_cast<int>(llama_n_ctx(context)))
         return env->NewStringUTF("Context limit exceeded");
-    llama_kv_cache_clear(context);
+    llama_memory_clear(llama_get_memory(context), true);
     const int chunk = 512;
     for (int i = 0; i < count; i += chunk) {
         const int n = std::min(chunk, count - i);
