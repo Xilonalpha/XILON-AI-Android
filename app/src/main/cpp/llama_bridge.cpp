@@ -110,13 +110,23 @@ Java_com_xilonalpha_xilonai_LocalLlama_generate(JNIEnv* env, jobject, jstring pr
     if (!sampler) return fail(env, "Sampler initialization failed");
     std::string output;
     bool decode_failed = false;
+    bool piece_failed = false;
     for (int i = 0; i < limit; ++i) {
         const llama_token token = llama_sampler_sample(sampler, context, -1);
         if (llama_vocab_is_eog(vocab, token)) break;
         ++last_generated_tokens;
         char piece[512];
         int n = llama_token_to_piece(vocab, token, piece, sizeof(piece), 0, true);
-        if (n > 0) output.append(piece, n);
+        if (n < 0) {
+            std::vector<char> expanded(static_cast<size_t>(-n) + 1);
+            n = llama_token_to_piece(vocab, token, expanded.data(),
+                                     static_cast<int32_t>(expanded.size()), 0, true);
+            if (n > 0) output.append(expanded.data(), static_cast<size_t>(n));
+            else piece_failed = true;
+        } else if (n > 0) {
+            output.append(piece, static_cast<size_t>(n));
+        }
+        if (piece_failed) break;
         if (i + 1 < limit) {
             llama_token next = token;
             if (llama_decode(context, llama_batch_get_one(&next, 1)) != 0) {
@@ -129,6 +139,7 @@ Java_com_xilonalpha_xilonai_LocalLlama_generate(JNIEnv* env, jobject, jstring pr
     last_decode_ms = millis(decode_start);
     __android_log_print(ANDROID_LOG_INFO, "XilonInference", "decode_ms=%lld generated_tokens=%d", last_decode_ms, last_generated_tokens);
     if (decode_failed) return fail(env, "Token decoding failed");
+    if (piece_failed) return fail(env, "Token text conversion failed");
     return env->NewStringUTF(output.c_str());
 }
 
