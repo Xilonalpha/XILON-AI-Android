@@ -34,7 +34,9 @@ object XilonActionPlanner {
         val attempted: Int,
         val dispatched: Int,
         val total: Int,
-        val failedStep: Int?
+        val failedStep: Int?,
+        val verified: Int = 0,
+        val details: List<String> = emptyList()
     ) {
         val allDispatched: Boolean get() = dispatched == total
     }
@@ -45,14 +47,20 @@ object XilonActionPlanner {
      */
     fun executeWithReport(context: android.content.Context, plan: Plan): ExecutionReport {
         var dispatched = 0
+        var verified = 0
+        val details = mutableListOf<String>()
         for ((index, step) in plan.steps.withIndex()) {
-            val accepted = runCatching {
-                XilonActions.execute(context, step.proposal, step.argument)
-            }.getOrDefault(false)
-            if (!accepted) return ExecutionReport(index + 1, dispatched, plan.steps.size, index + 1)
+            val outcome = XilonActionVerifier.execute(context, step)
+            details += "${index + 1}. ${step.proposal.label}: ${outcome.message}"
+            if (outcome.state == XilonActionVerifier.State.FAILED) {
+                return ExecutionReport(index + 1, dispatched, plan.steps.size,
+                    index + 1, verified, details)
+            }
             dispatched++
+            if (outcome.state == XilonActionVerifier.State.VERIFIED) verified++
         }
-        return ExecutionReport(dispatched, dispatched, plan.steps.size, null)
+        return ExecutionReport(dispatched, dispatched, plan.steps.size,
+            null, verified, details)
     }
 
     fun execute(context: android.content.Context, plan: Plan): Int =
