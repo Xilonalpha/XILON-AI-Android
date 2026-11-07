@@ -49,7 +49,7 @@ private fun XilonHome() {
             Text("XILON AI", style = MaterialTheme.typography.headlineMedium)
             Spacer(Modifier.height(12.dp))
             when (selected) {
-                0 -> Text("Chat offline va deveni disponibil după integrarea motorului llama.cpp.")
+                0 -> InstalledModelsScreen()
                 1 -> ModelExplorer()
                 else -> DeviceInfo()
             }
@@ -204,4 +204,44 @@ private fun DeviceInfo() {
     Text("RAM total: ${memory.totalMem / (1024L * 1024L)} MiB")
     Text("RAM disponibil la deschidere: ${memory.availMem / (1024L * 1024L)} MiB")
     Text("Spațiu liber: ${freeStorage / (1024L * 1024L)} MiB")
+}
+
+@Composable
+private fun InstalledModelsScreen() {
+    val context = LocalContext.current
+    var revision by remember { mutableIntStateOf(0) }
+    var confirmDelete by remember { mutableStateOf<String?>(null) }
+    val models = remember(revision) { InstalledModels.list(context) }
+    Text("Modele instalate", style = MaterialTheme.typography.titleLarge)
+    Text("Fișierele GGUF sunt păstrate local. Chatul offline va fi activat după integrarea llama.cpp.")
+    OutlinedButton(onClick = { revision++ }) { Text("Reîmprospătează") }
+    if (models.isEmpty()) {
+        Text("Niciun model instalat. Deschide fila Modele pentru descărcare.")
+    }
+    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(models, key = { it.absolutePath }) { model ->
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp)) {
+                    Text(model.name, style = MaterialTheme.typography.titleSmall)
+                    Text("Dimensiune: ${model.length() / (1024L * 1024L)} MiB")
+                    TextButton(onClick = { confirmDelete = model.name }) { Text("Șterge modelul") }
+                }
+            }
+        }
+    }
+    confirmDelete?.let { filename ->
+        AlertDialog(
+            onDismissRequest = { confirmDelete = null },
+            title = { Text("Ștergere model") },
+            text = { Text("Ștergi definitiv fișierul $filename de pe telefon?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    InstalledModels.delete(context, filename)
+                    confirmDelete = null
+                    revision++
+                }) { Text("Șterge") }
+            },
+            dismissButton = { TextButton(onClick = { confirmDelete = null }) { Text("Anulează") } }
+        )
+    }
 }
