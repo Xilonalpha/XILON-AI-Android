@@ -42,7 +42,7 @@ object ModelCompatibility {
             val size = item.optLong("size", -1L)
             // Conservative heuristic, not a runtime memory guarantee:
             // weights + 35% for working buffers + 512 MiB fixed overhead.
-            val estimated = if (size > 0 && size <= (Long.MAX_VALUE - 512L * MIB) / 135L * 100L)
+            val estimated = if (size > 0 && size <= (Long.MAX_VALUE - 512L * MIB) / 2L)
                 size + size * 35L / 100L + 512L * MIB else -1L
             val status = when {
                 size <= 0L || estimated <= 0L -> CompatibilityStatus.UNKNOWN
