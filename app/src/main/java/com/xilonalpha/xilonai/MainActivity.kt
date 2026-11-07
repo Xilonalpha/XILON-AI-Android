@@ -397,7 +397,10 @@ private fun InstalledModelsScreen() {
                     currentPssMiB = memoryAfter.totalPssKiB / 1024.0
                     nativeHeapMiB = memoryAfter.nativeHeapKiB / 1024.0
                     response = result.getOrElse { "Eroare: ${it.message}" }
-                    if (result.isSuccess) chatHistory = chatHistory + (submitted to response)
+                    if (result.isSuccess) {
+                        chatHistory = chatHistory + (submitted to response)
+                        prompt = ""
+                    }
                     busy = false
                 }
             }
