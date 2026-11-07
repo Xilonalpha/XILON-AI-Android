@@ -54,12 +54,10 @@ object GgufDownloader {
                 connection.getHeaderField("Content-Range")?.startsWith("bytes $offset-") == true
             if (status == 206 && !append) error("Invalid partial-content response")
             if (!append) offset = 0L
-            partial.outputStream().use { output ->
-                // FileOutputStream(file, append) is needed for valid 206 responses.
-                if (append) error("Resume requires append stream")
+            java.io.FileOutputStream(partial, append).use { output ->
                 connection.inputStream.use { input ->
                     val buffer = ByteArray(64 * 1024)
-                    var written = 0L
+                    var written = offset
                     while (true) {
                         val count = input.read(buffer)
                         if (count < 0) break
