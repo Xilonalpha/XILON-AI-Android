@@ -404,6 +404,7 @@ private fun InstalledModelsScreen() {
         OutlinedTextField(value = prompt, onValueChange = { prompt = it }, label = { Text("Mesaj") }, modifier = Modifier.fillMaxWidth())
         Button(enabled = !busy && prompt.isNotBlank(), onClick = {
             busy = true
+            response = ""
             val submitted = prompt
             val completeHistorySnapshot = chatHistory
             val recentHistory = completeHistorySnapshot.takeLast(4)
@@ -440,7 +441,13 @@ private fun InstalledModelsScreen() {
                 )
                 val result = if (conversation == null)
                     Result.failure<String>(IllegalArgumentException("Mesajul depășește contextul disponibil."))
-                else runCatching { LocalLlama.generate(conversation, outputLimit) }
+                else runCatching {
+                    LocalLlama.generateStreaming(conversation, outputLimit) { partial ->
+                        (context as ComponentActivity).runOnUiThread {
+                            response = partial
+                        }
+                    }
+                }
                 val elapsed = android.os.SystemClock.elapsedRealtime() - startedAt
                 val tokenCount = result.getOrNull()?.let { runCatching { LocalLlama.countTokens(it) }.getOrNull() }
                 val timings = runCatching { LocalLlama.lastTimings() }.getOrNull()
