@@ -357,24 +357,35 @@ private fun InstalledModelsScreen() {
             busy = true
             val submitted = prompt
             val historySnapshot = chatHistory.takeLast(4)
-            val fallbackConversation = buildString {
-                append("You are a helpful assistant.\\n")
-                historySnapshot.forEach { (q, a) -> append("User: ").append(q).append("\\nAssistant: ").append(a).append("\\n") }
-                append("User: ").append(submitted).append("\\nAssistant:")
-            }
             thread(name = "local-inference") {
                 val startedAt = android.os.SystemClock.elapsedRealtime()
-                val roles = mutableListOf("system")
-                val contents = mutableListOf("You are a helpful assistant.")
-                historySnapshot.forEach { (question, answer) ->
-                    roles.add("user"); contents.add(question)
-                    roles.add("assistant"); contents.add(answer)
-                }
-                roles.add("user"); contents.add(submitted)
-                val formatted = runCatching {
-                    LocalLlama.formatChat(roles.toTypedArray(), contents.toTypedArray())
-                }.getOrNull()
-                val result = runCatching { LocalLlama.generate(formatted ?: fallbackConversation, 128) }
+                val conversation = ConversationBudget.fit(
+                    history = historySnapshot,
+                    tokenBudget = 2048 - 128,
+                    render = { turns ->
+                        val roles = mutableListOf("system")
+                        val contents = mutableListOf("You are a helpful assistant.")
+                        turns.forEach { (question, answer) ->
+                            roles.add("user"); contents.add(question)
+                            roles.add("assistant"); contents.add(answer)
+                        }
+                        roles.add("user"); contents.add(submitted)
+                        val native = runCatching {
+                            LocalLlama.formatChat(roles.toTypedArray(), contents.toTypedArray())
+                        }.getOrNull()
+                        native ?: buildString {
+                            append("You are a helpful assistant.\\n")
+                            turns.forEach { (q, answer) ->
+                                append("User: ").append(q).append("\\nAssistant: ").append(answer).append("\\n")
+                            }
+                            append("User: ").append(submitted).append("\\nAssistant:")
+                        }
+                    },
+                    countTokens = { text -> LocalLlama.countTokens(text) }
+                )
+                val result = if (conversation == null)
+                    Result.failure<String>(IllegalArgumentException("Mesajul depășește contextul disponibil."))
+                else runCatching { LocalLlama.generate(conversation, 128) }
                 val elapsed = android.os.SystemClock.elapsedRealtime() - startedAt
                 val tokenCount = result.getOrNull()?.let { runCatching { LocalLlama.countTokens(it) }.getOrNull() }
                 val timings = runCatching { LocalLlama.lastTimings() }.getOrNull()
