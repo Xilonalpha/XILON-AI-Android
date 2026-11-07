@@ -1,4 +1,5 @@
 #include <jni.h>
+#include <android/log.h>
 #include <llama.h>
 #include <algorithm>
 #include <chrono>
@@ -93,6 +94,7 @@ Java_com_xilonalpha_xilonai_LocalLlama_generate(JNIEnv* env, jobject, jstring pr
     if (count + limit > available)
         return fail(env, "Context limit exceeded: shorten conversation");
     const int effective_count = count;
+    __android_log_print(ANDROID_LOG_INFO, "XilonInference", "prompt_tokens=%d context=%d max_output=%d", count, available, limit);
     llama_memory_clear(llama_get_memory(context), true);
     const auto prompt_start = Clock::now();
     const int chunk = 512;
@@ -102,6 +104,7 @@ Java_com_xilonalpha_xilonai_LocalLlama_generate(JNIEnv* env, jobject, jstring pr
             return fail(env, "Prompt evaluation failed");
     }
     last_prompt_ms = millis(prompt_start);
+    __android_log_print(ANDROID_LOG_INFO, "XilonInference", "prompt_evaluated_ms=%lld", last_prompt_ms);
     const auto decode_start = Clock::now();
     llama_sampler* sampler = llama_sampler_init_greedy();
     if (!sampler) return fail(env, "Sampler initialization failed");
@@ -124,6 +127,7 @@ Java_com_xilonalpha_xilonai_LocalLlama_generate(JNIEnv* env, jobject, jstring pr
     }
     llama_sampler_free(sampler);
     last_decode_ms = millis(decode_start);
+    __android_log_print(ANDROID_LOG_INFO, "XilonInference", "decode_ms=%lld generated_tokens=%d", last_decode_ms, last_generated_tokens);
     if (decode_failed) return fail(env, "Token decoding failed");
     return env->NewStringUTF(output.c_str());
 }
