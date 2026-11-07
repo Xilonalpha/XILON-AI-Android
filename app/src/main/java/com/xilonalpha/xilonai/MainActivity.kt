@@ -805,6 +805,15 @@ private fun InstalledModelsScreen() {
                     color = MaterialTheme.colorScheme.secondary)
             }
         }
+                }
+            }
+        }
+        if (activeModel.isNotBlank()) {
+            Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 4.dp) {
+                Column(
+                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
         OutlinedTextField(
             value = prompt,
             onValueChange = { prompt = it },
