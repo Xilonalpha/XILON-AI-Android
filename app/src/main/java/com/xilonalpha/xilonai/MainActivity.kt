@@ -127,6 +127,7 @@ private fun ModelExplorer() {
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
     var newest by remember { mutableStateOf(true) }
+    var searchText by remember { mutableStateOf("") }
     var selectedModel by remember { mutableStateOf<String?>(null) }
     var candidates by remember { mutableStateOf<List<GgufCandidate>>(emptyList()) }
     var candidateError by remember { mutableStateOf<String?>(null) }
@@ -172,6 +173,15 @@ private fun ModelExplorer() {
     }
     LaunchedEffect(newest) { refresh() }
     Text("Catalog GGUF Hugging Face", style = MaterialTheme.typography.titleMedium)
+    OutlinedTextField(
+        value = searchText,
+        onValueChange = { searchText = it },
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = true,
+        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+        label = { Text("Caută în catalogul încărcat") },
+        placeholder = { Text("Ex: Qwen, Llama, Gemma") }
+    )
     Text("Catalog online. Estimarea RAM este orientativă; suportul llama.cpp nu este verificat.", style = MaterialTheme.typography.bodySmall)
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         FilterChip(selected = newest, onClick = { newest = true }, label = { Text("Recente") })
@@ -180,8 +190,12 @@ private fun ModelExplorer() {
     }
     if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
     error?.let { Text("Eroare: $it", color = MaterialTheme.colorScheme.error) }
+    val visibleModels = remember(models, searchText) {
+        if (searchText.isBlank()) models else models.filter { it.id.contains(searchText.trim(), ignoreCase = true) }
+    }
+    Text("${visibleModels.size} modele afișate din ${models.size} încărcate", style = MaterialTheme.typography.bodySmall)
     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        items(models, key = { it.id }) { model ->
+        items(visibleModels, key = { it.id }) { model ->
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp)) {
                     Text(model.id, style = MaterialTheme.typography.titleSmall)
