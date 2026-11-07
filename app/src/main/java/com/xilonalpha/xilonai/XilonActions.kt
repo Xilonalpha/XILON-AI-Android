@@ -12,12 +12,17 @@ import android.provider.Settings
  * shell commands, arbitrary URLs or silent external side effects.
  */
 object XilonActions {
-    enum class Kind { SETTINGS, MUSIC, WEB_SEARCH, PLAY_PAUSE, NEXT_TRACK, PREVIOUS_TRACK, VOLUME_UP, VOLUME_DOWN }
+    enum class Kind { SETTINGS, MUSIC, WEB_SEARCH, PLAY_PAUSE, NEXT_TRACK, PREVIOUS_TRACK, VOLUME_UP, VOLUME_DOWN, SHARE_MESSAGE }
     data class Proposal(val kind: Kind, val label: String, val explanation: String)
 
     fun propose(text: String): Proposal? {
         val q = text.trim().lowercase(java.util.Locale.ROOT)
         return when {
+            listOf("trimite pe whatsapp:", "trimite prin whatsapp:",
+                "share on whatsapp:", "mesaj whatsapp:")
+                .any(q::startsWith) ->
+                Proposal(Kind.SHARE_MESSAGE, "Pregătește mesaj WhatsApp",
+                    "Deschide WhatsApp cu textul pregătit. Tu alegi destinatarul și confirmi trimiterea.")
             listOf("pauză muzica", "pauza muzica", "oprește muzica", "opreste muzica",
                 "play pause", "pause music", "reia muzica", "reia muzică")
                 .any(q::contains) ->
@@ -75,6 +80,15 @@ object XilonActions {
               catch (_: IllegalStateException) { false }
         }
         val intent = when (proposal.kind) {
+            Kind.SHARE_MESSAGE -> {
+                val message = originalMessage.substringAfter(':', "").trim()
+                if (message.isBlank()) return false
+                Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, message)
+                    setPackage("com.whatsapp")
+                }
+            }
             Kind.PLAY_PAUSE, Kind.NEXT_TRACK, Kind.PREVIOUS_TRACK,
             Kind.VOLUME_UP, Kind.VOLUME_DOWN -> return false
             Kind.SETTINGS -> Intent(Settings.ACTION_SETTINGS)
