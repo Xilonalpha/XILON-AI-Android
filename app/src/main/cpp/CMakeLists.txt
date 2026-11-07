@@ -18,6 +18,15 @@ FetchContent_Declare(llama_cpp
 )
 FetchContent_MakeAvailable(llama_cpp)
 
+# Debug APKs are used for on-device inference testing. Keep JNI debuggable,
+# but compile the computational kernels with optimizations enabled.
+# This is especially important for GGML CPU matrix operations on ARM64.
+foreach(inference_target ggml-base ggml-cpu llama)
+    if(TARGET ${inference_target})
+        target_compile_options(${inference_target} PRIVATE -O3)
+    endif()
+endforeach()
+
 add_library(xilon_native SHARED gguf_probe.cpp llama_bridge.cpp)
 target_compile_features(xilon_native PRIVATE cxx_std_17)
 target_compile_options(xilon_native PRIVATE -Wall -Wextra)
