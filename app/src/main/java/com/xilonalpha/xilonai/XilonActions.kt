@@ -2,7 +2,6 @@ package com.xilonalpha.xilonai
 
 import android.content.Context
 import android.media.AudioManager
-import android.view.KeyEvent
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
@@ -75,8 +74,7 @@ object XilonActions {
             return result?.outcome == XilonMediaSessions.Outcome.DISPATCHED ||
                 result?.outcome == XilonMediaSessions.Outcome.VERIFIED
         }
-        if (proposal.kind in setOf(Kind.NEXT_TRACK,
-                Kind.PREVIOUS_TRACK, Kind.VOLUME_UP, Kind.VOLUME_DOWN, Kind.SET_VOLUME)) {
+        if (proposal.kind in setOf(Kind.VOLUME_UP, Kind.VOLUME_DOWN, Kind.SET_VOLUME)) {
             return try {
                 val audio = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
                 when (proposal.kind) {
@@ -92,15 +90,7 @@ object XilonActions {
                         AudioManager.ADJUST_RAISE, 0)
                     Kind.VOLUME_DOWN -> audio.adjustStreamVolume(AudioManager.STREAM_MUSIC,
                         AudioManager.ADJUST_LOWER, 0)
-                    else -> {
-                        val key = when (proposal.kind) {
-                            Kind.PLAY_PAUSE -> KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
-                            Kind.NEXT_TRACK -> KeyEvent.KEYCODE_MEDIA_NEXT
-                            else -> KeyEvent.KEYCODE_MEDIA_PREVIOUS
-                        }
-                        audio.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, key))
-                        audio.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_UP, key))
-                    }
+                    else -> return false
                 }
                 true // Dispatched to Android; playback outcome cannot be guaranteed.
             } catch (_: SecurityException) { false }
