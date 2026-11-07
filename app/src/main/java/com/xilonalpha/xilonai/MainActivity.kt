@@ -487,6 +487,9 @@ private fun InstalledModelsScreen() {
                 color = MaterialTheme.colorScheme.surfaceVariant
             ) { Text(response, Modifier.padding(12.dp)) }
         }
+        OutlinedButton(onClick = {
+            previewHtml = XilonOffline3dDemo.html
+        }) { Text("Testează cubul 3D offline") }
         val exportableHtml = XilonHtmlExport.extract(response)
             ?: chatHistory.lastOrNull()?.second?.let { XilonHtmlExport.extract(it) }
         if (!busy && exportableHtml != null) {
