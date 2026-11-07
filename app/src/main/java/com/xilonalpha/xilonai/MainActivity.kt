@@ -607,8 +607,10 @@ private fun InstalledModelsScreen() {
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer)
                     Button(enabled = !busy, onClick = {
-                        val completed = XilonActionPlanner.execute(context, actionPlan)
-                        actionFeedback = "Acțiuni trimise către Android: $completed / ${actionPlan.steps.size}. Verifică rezultatul în aplicațiile deschise."
+                        val report = XilonActionPlanner.executeWithReport(context, actionPlan)
+                        actionFeedback = if (report.allDispatched)
+                            "Android a acceptat trimiterea a ${report.dispatched} / ${report.total} acțiuni. Rezultatul în alte aplicații nu este verificat."
+                        else "Plan oprit la pasul ${report.failedStep}. Au fost trimise ${report.dispatched} / ${report.total} acțiuni; restul nu s-au executat."
                     }) { Text("Confirmă și execută planul") }
                 }
             }
