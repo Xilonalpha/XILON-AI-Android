@@ -318,12 +318,16 @@ private fun InstalledModelsScreen() {
     var response by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var loadingModel by remember { mutableStateOf<String?>(null) }
+    var loadDurationMs by remember { mutableStateOf<Long?>(null) }
+    var generationDurationMs by remember { mutableStateOf<Long?>(null) }
     val models = remember(revision) { InstalledModels.list(context) }
     Text("Modele instalate", style = MaterialTheme.typography.titleLarge)
     Text("Modelele GGUF complete pot fi încărcate local. Fișierele imatrix nu sunt modele de conversație.")
     OutlinedButton(onClick = { revision++ }) { Icon(Icons.Filled.Refresh, null); Spacer(Modifier.width(8.dp)); Text("Reîmprospătează") }
     if (activeModel.isNotBlank()) {
         Text("Model activ: $activeModel")
+        loadDurationMs?.let { Text("Timp de încărcare: $it ms") }
+        generationDurationMs?.let { Text("Timp ultima generare: $it ms (nu este măsurare tokens/secundă)") }
         OutlinedTextField(value = prompt, onValueChange = { prompt = it }, label = { Text("Mesaj") }, modifier = Modifier.fillMaxWidth())
         Button(enabled = !busy && prompt.isNotBlank(), onClick = {
             busy = true
@@ -334,8 +338,11 @@ private fun InstalledModelsScreen() {
                 append("User: ").append(submitted).append("\\nAssistant:")
             }
             thread(name = "local-inference") {
+                val startedAt = android.os.SystemClock.elapsedRealtime()
                 val result = runCatching { LocalLlama.generate(conversation, 128) }
+                val elapsed = android.os.SystemClock.elapsedRealtime() - startedAt
                 (context as ComponentActivity).runOnUiThread {
+                    generationDurationMs = elapsed
                     response = result.getOrElse { "Eroare: ${it.message}" }
                     if (result.isSuccess) chatHistory = chatHistory + (submitted to response)
                     busy = false
@@ -379,9 +386,13 @@ private fun InstalledModelsScreen() {
                         loadingModel = model.name
                         response = "Se încarcă modelul în memoria telefonului..."
                         thread(name = "llama-load") {
+                            val startedAt = android.os.SystemClock.elapsedRealtime()
                             val attempt = runCatching { LocalLlama.loadModel(model) }
+                            val elapsed = android.os.SystemClock.elapsedRealtime() - startedAt
                             val loaded = attempt.getOrDefault(false)
                             (context as ComponentActivity).runOnUiThread {
+                                loadDurationMs = if (loaded) elapsed else null
+                                generationDurationMs = null
                                 activeModel = if (loaded) model.name else ""
                                 chatHistory = emptyList()
                                 response = if (loaded) "Model încărcat. Poți trimite un mesaj." else "Încărcarea a eșuat: ${attempt.exceptionOrNull()?.message ?: "format incompatibil, model incomplet sau memorie insuficientă"}."
