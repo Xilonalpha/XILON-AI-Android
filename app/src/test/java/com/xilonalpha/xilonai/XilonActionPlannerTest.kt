@@ -50,4 +50,21 @@ class XilonActionPlannerTest {
         assertTrue(plan!!.requiresConfirmation)
         assertEquals(2, plan.steps.size)
     }
+    @Test fun commaInsideWhatsappMessageIsNotAnActionSeparator() {
+        val plan = XilonActionPlanner.plan("trimite pe whatsapp: Salut, ce faci?")
+        assertNotNull(plan)
+        assertEquals(1, plan!!.steps.size)
+        assertEquals("trimite pe whatsapp: Salut, ce faci?", plan.steps.single().argument)
+    }
+
+    @Test fun commaInsideYoutubeQueryIsPreserved() {
+        val plan = XilonActionPlanner.plan("caută pe youtube: jazz, blues și rock")
+        assertEquals(1, plan?.steps?.size)
+        assertEquals("caută pe youtube: jazz, blues și rock", plan?.steps?.single()?.argument)
+    }
+
+    @Test fun commaFollowedByExplicitSequenceStillSplits() {
+        val plan = XilonActionPlanner.plan("deschide setările, apoi volum la 30%")
+        assertEquals(2, plan?.steps?.size)
+    }
 }
