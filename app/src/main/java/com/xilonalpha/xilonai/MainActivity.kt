@@ -614,7 +614,7 @@ private fun InstalledModelsScreen() {
                         val summary = if (report.allDispatched)
                             "Trimise: ${report.dispatched}/${report.total}; verificate: ${report.verified}. "
                         else "Plan oprit la pasul ${report.failedStep}; trimise: ${report.dispatched}/${report.total}; verificate: ${report.verified}. "
-                        actionFeedback = summary + report.details.joinToString("\\n")
+                        actionFeedback = summary + report.details.joinToString("\n")
                     }) { Text("Confirmă și execută planul") }
                 }
             }
