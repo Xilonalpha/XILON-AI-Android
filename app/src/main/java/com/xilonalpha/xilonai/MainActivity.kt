@@ -637,7 +637,13 @@ private fun InstalledModelsScreen() {
                 }
             }
         }) { Text("Generează offline") }
-                    if (busy && loadingModel == null) LinearProgressIndicator(Modifier.fillMaxWidth())
+        if (busy && loadingModel == null) {
+            OutlinedButton(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { LocalLlama.requestStop() }
+            ) { Text("Oprește generarea") }
+            LinearProgressIndicator(Modifier.fillMaxWidth())
+        }
                 }
             }
         }
