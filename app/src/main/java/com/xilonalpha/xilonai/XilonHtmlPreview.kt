@@ -2,6 +2,7 @@ package com.xilonalpha.xilonai
 
 import android.annotation.SuppressLint
 import android.webkit.WebResourceRequest
+import org.json.JSONObject
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -17,12 +18,25 @@ import java.io.ByteArrayInputStream
  */
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-fun XilonHtmlPreview(html: String) {
+fun XilonHtmlPreview(html: String, onSceneObj: ((String?, String?) -> Unit)? = null) {
     AndroidView(
         modifier = Modifier.fillMaxSize(),
         factory = { context ->
             WebView(context).apply {
                 settings.javaScriptEnabled = true
+                setOnLongClickListener {
+                    if (onSceneObj != null) {
+                        evaluateJavascript(XilonSceneObj.javascript) { encoded ->
+                            runCatching {
+                                val decoded = org.json.JSONTokener(encoded).nextValue() as String
+                                val payload = JSONObject(decoded)
+                                onSceneObj(payload.optString("obj").takeIf { it.isNotBlank() },
+                                    payload.optString("error").takeIf { it.isNotBlank() })
+                            }.onFailure { onSceneObj(null, "Nu pot citi geometria scenei: ${it.message}") }
+                        }
+                        true
+                    } else false
+                }
                 settings.blockNetworkLoads = true
                 settings.allowFileAccess = false
                 settings.allowContentAccess = false
