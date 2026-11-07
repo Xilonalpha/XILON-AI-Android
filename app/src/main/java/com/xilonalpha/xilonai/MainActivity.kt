@@ -211,10 +211,27 @@ private fun InstalledModelsScreen() {
     val context = LocalContext.current
     var revision by remember { mutableIntStateOf(0) }
     var confirmDelete by remember { mutableStateOf<String?>(null) }
+    var activeModel by remember { mutableStateOf("") }
+    var prompt by remember { mutableStateOf("") }
+    var response by remember { mutableStateOf("") }
+    var busy by remember { mutableStateOf(false) }
     val models = remember(revision) { InstalledModels.list(context) }
     Text("Modele instalate", style = MaterialTheme.typography.titleLarge)
     Text("Fișierele GGUF sunt păstrate local. Chatul offline va fi activat după integrarea llama.cpp.")
     OutlinedButton(onClick = { revision++ }) { Text("Reîmprospătează") }
+    if (activeModel.isNotBlank()) {
+        Text("Model activ: $activeModel")
+        OutlinedTextField(value = prompt, onValueChange = { prompt = it }, label = { Text("Mesaj") }, modifier = Modifier.fillMaxWidth())
+        Button(enabled = !busy && prompt.isNotBlank(), onClick = {
+            busy = true
+            thread(name = "local-inference") {
+                val answer = runCatching { LocalLlama.generate(prompt, 128) }.getOrElse { "Eroare: ${it.message}" }
+                (context as ComponentActivity).runOnUiThread { response = answer; busy = false }
+            }
+        }) { Text("Generează offline") }
+        if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
+        Text(response)
+    }
     if (models.isEmpty()) {
         Text("Niciun model instalat. Deschide fila Modele pentru descărcare.")
     }
@@ -228,6 +245,17 @@ private fun InstalledModelsScreen() {
                         runCatching { NativeGgufProbe.inspect(model) }.getOrNull()
                     }
                     Text(if (header != null) "GGUF v${header.version} · ${header.tensorCount} tensori · ${header.metadataCount} metadate" else "GGUF: antet invalid sau bibliotecă nativă indisponibilă")
+                    Button(enabled = !busy, onClick = {
+                        busy = true
+                        thread(name = "llama-load") {
+                            val loaded = runCatching { LocalLlama.loadModel(model) }.getOrDefault(false)
+                            (context as ComponentActivity).runOnUiThread {
+                                activeModel = if (loaded) model.name else ""
+                                response = if (loaded) "Model încărcat. Poți trimite un mesaj." else "Nu s-a putut încărca modelul."
+                                busy = false
+                            }
+                        }
+                    }) { Text("Încarcă pentru chat") }
                     TextButton(onClick = { confirmDelete = model.name }) { Text("Șterge modelul") }
                 }
             }
