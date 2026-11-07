@@ -340,7 +340,7 @@ private fun InstalledModelsScreen() {
     var activeModel by remember { mutableStateOf("") }
     var chatHistory by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
     var prompt by remember { mutableStateOf("") }
-    var maxResponseTokens by remember { mutableIntStateOf(64) }
+    var maxResponseTokens by remember { mutableIntStateOf(1024) }
     var response by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     val stopRequested = remember { AtomicBoolean(false) }
@@ -507,7 +507,7 @@ private fun InstalledModelsScreen() {
         }) { Text("Șterge istoricul conversației") }
         Text("Lungimea răspunsului", style = MaterialTheme.typography.bodySmall)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf(64, 128, 256).forEach { count ->
+            listOf(256, 512, 1024, 1536).forEach { count ->
                 if (maxResponseTokens == count) {
                     Button(enabled = !busy, onClick = { maxResponseTokens = count }) { Text("$count") }
                 } else {
@@ -565,8 +565,7 @@ private fun InstalledModelsScreen() {
                             val startedAt = android.os.SystemClock.elapsedRealtime()
                             val attempt = runCatching { LocalLlama.loadModel(model) }
                             val memoryAfter = InferenceProfiler.snapshot()
-                            val cleanedResult = result.map { XilonResponseBoundary.clean(it) }
-                val elapsed = android.os.SystemClock.elapsedRealtime() - startedAt
+                            val elapsed = android.os.SystemClock.elapsedRealtime() - startedAt
                             val loaded = attempt.getOrDefault(false)
                             val storedHistory = if (loaded) runCatching { LocalConversationStore.load(context, model.name) }.getOrDefault(emptyList()) else emptyList()
                             (context as ComponentActivity).runOnUiThread {
@@ -731,6 +730,7 @@ private fun InstalledModelsScreen() {
                         }
                     }
                 }
+                val cleanedResult = result.map { XilonResponseBoundary.clean(it) }
                 val elapsed = android.os.SystemClock.elapsedRealtime() - startedAt
                 val tokenCount = cleanedResult.getOrNull()?.let { runCatching { LocalLlama.countTokens(it) }.getOrNull() }
                 val timings = runCatching { LocalLlama.lastTimings() }.getOrNull()
