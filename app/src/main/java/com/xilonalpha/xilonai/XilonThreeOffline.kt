@@ -22,9 +22,8 @@ object XilonThreeOffline {
             match.groupValues[1] + "three" + match.groupValues[3]
         }
         if (!bareImport.containsMatchIn(result)) return result
-        val prefix = "<script src=\\\"https://xilon-preview.invalid/three.min.js\\\"></script>" +
-            "<script type=\\\"importmap\\\">{\\\"imports\\\":{\\\"three\\\":" +
-            "\\\"https://xilon-preview.invalid/three-module-adapter.js\\\"}}</script>"
+        val prefix = """<script src="https://xilon-preview.invalid/three.min.js"></script>
+<script type="importmap">{"imports":{"three":"https://xilon-preview.invalid/three-module-adapter.js"}}</script>"""
         val head = Regex("""(?i)<head\\b[^>]*>""")
         val match = head.find(result)
         return if (match != null) result.replaceRange(match.range, match.value + prefix)
