@@ -37,6 +37,10 @@ class XilonActionsTest {
             XilonActions.propose("deschide whatsapp")?.kind)
         assertEquals(XilonActions.Kind.OPEN_APP,
             XilonActions.propose("open youtube")?.kind)
+        assertEquals(XilonActions.Kind.OPEN_APP,
+            XilonActions.propose("deschide aplicația WhatsApp")?.kind)
+        assertEquals(XilonActions.Kind.OPEN_APP,
+            XilonActions.propose("lansează aplicația Spotify")?.kind)
         assertNull(XilonActions.propose("deschide aplicația bancară"))
     }
     @Test fun volumeCommandsAreExplicit() {
