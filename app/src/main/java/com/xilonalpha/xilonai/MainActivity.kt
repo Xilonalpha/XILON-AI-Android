@@ -353,6 +353,22 @@ private fun InstalledModelsScreen() {
             }
         }
         Text("Istoric privat, salvat local pentru fiecare model. Nu este sincronizat online.", style = MaterialTheme.typography.bodySmall)
+        OutlinedButton(enabled = !busy, onClick = {
+            val modelName = activeModel
+            busy = true
+            thread(name = "clear-local-history") {
+                val cleared = runCatching { LocalConversationStore.clear(context, modelName) }
+                (context as ComponentActivity).runOnUiThread {
+                    if (cleared.isSuccess) {
+                        chatHistory = emptyList()
+                        response = "Istoricul local pentru acest model a fost șters."
+                    } else {
+                        response = "Nu s-a putut șterge istoricul: ${cleared.exceptionOrNull()?.message}"
+                    }
+                    busy = false
+                }
+            }
+        }) { Text("Șterge istoricul conversației") }
         OutlinedTextField(value = prompt, onValueChange = { prompt = it }, label = { Text("Mesaj") }, modifier = Modifier.fillMaxWidth())
         Button(enabled = !busy && prompt.isNotBlank(), onClick = {
             busy = true
