@@ -56,6 +56,7 @@ object LocalConversationStore {
     }
 
     @Synchronized
-    fun clear(context: Context, modelName: String): Boolean =
+    fun clear(context: Context, modelName: String) {
         storage(context, modelName).delete()
+    }
 }
