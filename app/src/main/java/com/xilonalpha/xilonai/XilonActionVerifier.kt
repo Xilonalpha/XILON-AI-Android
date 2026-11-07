@@ -14,9 +14,12 @@ object XilonActionVerifier {
     fun execute(context: Context, step: XilonActionPlanner.Step): Result {
         val kind = step.proposal.kind
         if (kind in setOf(XilonActions.Kind.PLAY_PAUSE,
+                XilonActions.Kind.PLAY_MEDIA, XilonActions.Kind.PAUSE_MEDIA,
                 XilonActions.Kind.NEXT_TRACK, XilonActions.Kind.PREVIOUS_TRACK)) {
             val command = when (kind) {
                 XilonActions.Kind.PLAY_PAUSE -> XilonMediaSessions.Command.TOGGLE
+                XilonActions.Kind.PLAY_MEDIA -> XilonMediaSessions.Command.PLAY
+                XilonActions.Kind.PAUSE_MEDIA -> XilonMediaSessions.Command.PAUSE
                 XilonActions.Kind.NEXT_TRACK -> XilonMediaSessions.Command.NEXT
                 else -> XilonMediaSessions.Command.PREVIOUS
             }
