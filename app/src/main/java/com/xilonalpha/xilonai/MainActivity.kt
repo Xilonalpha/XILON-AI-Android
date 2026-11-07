@@ -326,11 +326,26 @@ private fun InstalledModelsScreen() {
     var currentPssMiB by remember { mutableStateOf<Double?>(null) }
     var nativeHeapMiB by remember { mutableStateOf<Double?>(null) }
     val models = remember(revision) { InstalledModels.list(context) }
+    if (activeModel.isNotBlank()) {
+        Text("Conversație cu XILON AI", style = MaterialTheme.typography.titleLarge)
+        Text("Model: " + activeModel.take(44) + if (activeModel.length > 44) "…" else "", style = MaterialTheme.typography.bodySmall)
+        if (response.isNotBlank()) {
+            Text("Ultimul răspuns", style = MaterialTheme.typography.titleMedium)
+            androidx.compose.material3.Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surfaceVariant
+            ) {
+                Text(response, modifier = Modifier.padding(16.dp))
+            }
+        }
+        if (busy && loadingModel == null) Text("XILON AI generează răspunsul local…")
+    }
     Text("Modele instalate", style = MaterialTheme.typography.titleLarge)
     Text("Modelele GGUF complete pot fi încărcate local. Fișierele imatrix nu sunt modele de conversație.")
     OutlinedButton(onClick = { revision++ }) { Icon(Icons.Filled.Refresh, null); Spacer(Modifier.width(8.dp)); Text("Reîmprospătează") }
     if (activeModel.isNotBlank()) {
-        Text("Model activ: $activeModel")
+        Text("Model activ: " + activeModel.take(44) + if (activeModel.length > 44) "…" else "")
         loadDurationMs?.let { Text("Timp de încărcare: $it ms") }
         loadMemoryDeltaMiB?.let { Text("Variație memorie PSS la încărcare: %.1f MiB".format(java.util.Locale.ROOT, it)) }
         currentPssMiB?.let { Text("Memorie proces PSS: %.1f MiB".format(java.util.Locale.ROOT, it)) }
