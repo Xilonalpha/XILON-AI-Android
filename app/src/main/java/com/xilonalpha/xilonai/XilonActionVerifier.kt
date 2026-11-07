@@ -13,6 +13,24 @@ object XilonActionVerifier {
 
     fun execute(context: Context, step: XilonActionPlanner.Step): Result {
         val kind = step.proposal.kind
+        if (kind in setOf(XilonActions.Kind.PLAY_PAUSE,
+                XilonActions.Kind.NEXT_TRACK, XilonActions.Kind.PREVIOUS_TRACK)) {
+            val command = when (kind) {
+                XilonActions.Kind.PLAY_PAUSE -> XilonMediaSessions.Command.TOGGLE
+                XilonActions.Kind.NEXT_TRACK -> XilonMediaSessions.Command.NEXT
+                else -> XilonMediaSessions.Command.PREVIOUS
+            }
+            val result = runCatching {
+                XilonMediaSessions.command(context, command)
+            }.getOrElse {
+                return Result(State.FAILED, "Sesiunea media nu a putut fi accesată.")
+            }
+            return when (result.outcome) {
+                XilonMediaSessions.Outcome.VERIFIED -> Result(State.VERIFIED, result.description)
+                XilonMediaSessions.Outcome.DISPATCHED -> Result(State.DISPATCHED_UNVERIFIED, result.description)
+                else -> Result(State.FAILED, result.description)
+            }
+        }
         val volumeAction = kind in setOf(
             XilonActions.Kind.SET_VOLUME,
             XilonActions.Kind.VOLUME_UP,
