@@ -24,10 +24,16 @@ object XilonActions {
     )
 
     private fun requestedApp(command: String): String? {
-        val words = command.trim().lowercase(java.util.Locale.ROOT).split(Regex("\\s+"))
-        if (words.size != 2 || words[0] !in setOf(
+        val words = command.trim().lowercase(java.util.Locale.ROOT)
+            .split(Regex("\\s+"))
+        if (words.isEmpty() || words[0] !in setOf(
                 "deschide", "porneste", "pornește", "lanseaza", "lansează", "open", "launch")) return null
-        return appPackages[words[1]]
+        val appName = when {
+            words.size == 2 -> words[1]
+            words.size == 3 && words[1] in setOf("aplicația", "aplicatia", "app") -> words[2]
+            else -> return null
+        }
+        return appPackages[appName]
     }
 
     fun propose(text: String): Proposal? {
