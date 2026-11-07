@@ -8,6 +8,23 @@ import java.util.concurrent.atomic.AtomicBoolean
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.Alignment
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.filled.Memory
+import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
@@ -25,33 +42,80 @@ data class HubModel(val id: String, val downloads: Long, val likes: Long, val up
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { MaterialTheme { XilonHome() } }
+        setContent { XilonTheme { XilonHome() } }
     }
+}
+
+private val XilonPurple = Color(0xFF7657F7)
+private val XilonDark = Color(0xFF111327)
+private val XilonSurface = Color(0xFF1D2038)
+
+@Composable
+private fun XilonTheme(content: @Composable () -> Unit) {
+    val scheme = darkColorScheme(
+        primary = Color(0xFFB9A7FF),
+        onPrimary = Color(0xFF211451),
+        background = XilonDark,
+        onBackground = Color(0xFFF5F3FF),
+        surface = XilonSurface,
+        onSurface = Color(0xFFF5F3FF),
+        surfaceVariant = Color(0xFF2A2D49),
+        onSurfaceVariant = Color(0xFFC5C4D8),
+        secondary = Color(0xFF75E0E6)
+    )
+    MaterialTheme(colorScheme = scheme, content = content)
 }
 
 @Composable
 private fun XilonHome() {
     var selected by remember { mutableIntStateOf(0) }
     val tabs = listOf("Chat", "Modele", "Dispozitiv")
-    Scaffold(bottomBar = {
-        NavigationBar {
+    val icons = listOf(Icons.Filled.ChatBubbleOutline, Icons.Filled.Memory, Icons.Filled.PhoneAndroid)
+    Scaffold(containerColor = XilonDark, bottomBar = {
+        NavigationBar(containerColor = XilonSurface) {
             tabs.forEachIndexed { index, name ->
                 NavigationBarItem(
                     selected = selected == index,
                     onClick = { selected = index },
-                    icon = { Text((index + 1).toString()) },
+                    icon = { Icon(icons[index], contentDescription = name) },
                     label = { Text(name) }
                 )
             }
         }
     }) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
-            Text("XILON AI", style = MaterialTheme.typography.headlineMedium)
-            Spacer(Modifier.height(12.dp))
-            when (selected) {
-                0 -> InstalledModelsScreen()
-                1 -> ModelExplorer()
-                else -> DeviceInfo()
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            Column(
+                Modifier.fillMaxWidth().background(
+                    Brush.linearGradient(listOf(Color(0xFF4733A4), Color(0xFF1D315C), XilonDark))
+                ).padding(horizontal = 22.dp, vertical = 22.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Surface(color = Color.White.copy(alpha = 0.14f), shape = RoundedCornerShape(16.dp)) {
+                        Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = Color(0xFF92F4F1),
+                            modifier = Modifier.padding(12.dp).size(28.dp))
+                    }
+                    Column {
+                        Text("XILON AI", style = MaterialTheme.typography.headlineMedium, color = Color.White)
+                        Text("Inteligență locală. Fără server AI.", color = Color(0xFFD5D0FF),
+                            style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+                Spacer(Modifier.height(18.dp))
+                Text(
+                    when (selected) {
+                        0 -> "Spațiul tău de conversație"
+                        1 -> "Descoperă modele AI"
+                        else -> "Capabilitățile dispozitivului"
+                    },
+                    style = MaterialTheme.typography.titleMedium, color = Color.White
+                )
+            }
+            Column(Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 12.dp)) {
+                when (selected) {
+                    0 -> InstalledModelsScreen()
+                    1 -> ModelExplorer()
+                    else -> DeviceInfo()
+                }
             }
         }
     }
@@ -141,7 +205,7 @@ private fun ModelExplorer() {
                                 }
                             }
                         }
-                    }) { Text("Verifică fișierele GGUF") }
+                    }) { Icon(Icons.Filled.Search, null); Spacer(Modifier.width(6.dp)); Text("Verifică fișierele GGUF") }
                     if (selectedModel == model.id) {
                         if (inspecting) CircularProgressIndicator()
                         candidateError?.let { Text("Eroare: $it") }
@@ -181,7 +245,7 @@ private fun ModelExplorer() {
                                             }
                                         }
                                     }
-                                }) { Text("Descarcă GGUF") }
+                                }) { Icon(Icons.Filled.CloudDownload, null); Spacer(Modifier.width(6.dp)); Text("Descarcă GGUF") }
                             }
                         }
                     }
@@ -220,7 +284,7 @@ private fun InstalledModelsScreen() {
     val models = remember(revision) { InstalledModels.list(context) }
     Text("Modele instalate", style = MaterialTheme.typography.titleLarge)
     Text("Modelele GGUF complete pot fi încărcate local. Fișierele imatrix nu sunt modele de conversație.")
-    OutlinedButton(onClick = { revision++ }) { Text("Reîmprospătează") }
+    OutlinedButton(onClick = { revision++ }) { Icon(Icons.Filled.Refresh, null); Spacer(Modifier.width(8.dp)); Text("Reîmprospătează") }
     if (activeModel.isNotBlank()) {
         Text("Model activ: $activeModel")
         OutlinedTextField(value = prompt, onValueChange = { prompt = it }, label = { Text("Mesaj") }, modifier = Modifier.fillMaxWidth())
@@ -287,8 +351,8 @@ private fun InstalledModelsScreen() {
                                 loadingModel = null
                             }
                         }
-                    }) { Text(if (loadingModel == model.name) "Se încarcă…" else "Încarcă pentru chat") }
-                    TextButton(onClick = { confirmDelete = model.name }) { Text("Șterge modelul") }
+                    }) { Icon(Icons.Filled.PlayArrow, null); Spacer(Modifier.width(6.dp)); Text(if (loadingModel == model.name) "Se încarcă…" else "Încarcă pentru chat") }
+                    TextButton(onClick = { confirmDelete = model.name }) { Icon(Icons.Filled.DeleteOutline, null); Spacer(Modifier.width(6.dp)); Text("Șterge modelul") }
                 }
             }
         }
