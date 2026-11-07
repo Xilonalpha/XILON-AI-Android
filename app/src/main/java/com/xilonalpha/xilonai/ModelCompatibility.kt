@@ -41,7 +41,8 @@ object ModelCompatibility {
             val filename = item.optString("rfilename")
             if (!filename.endsWith(".gguf", ignoreCase = true)) return@mapNotNull null
             // Importance matrices and auxiliary quantization data are not runnable models.
-            if (AuxiliaryGguf.isAuxiliary(filename)) return@mapNotNull null
+            val analysis = ModelIntelligence.analyze(filename)
+            if (!analysis.runnableCandidate) return@mapNotNull null
             val lfs = item.optJSONObject("lfs")
             val size = when {
                 item.has("size") && !item.isNull("size") -> item.optLong("size", -1L)
@@ -61,7 +62,7 @@ object ModelCompatibility {
             val reason = when (status) {
                 CompatibilityStatus.UNKNOWN -> "File size unavailable; cannot estimate"
                 CompatibilityStatus.TOO_LARGE -> "64-bit ABI, free storage or conservative RAM budget insufficient"
-                CompatibilityStatus.ESTIMATED -> "Resource estimate only; runtime architecture not verified"
+                CompatibilityStatus.ESTIMATED -> "Cuantizare: ${analysis.quantization ?: "necunoscută"}; RAM estimat, arhitectură neverificată"
             }
             GgufCandidate(filename, size, estimated, status, reason,
                 lfs?.optString("oid")?.removePrefix("sha256:")?.takeIf { it.matches(Regex("[a-fA-F0-9]{64}")) })
