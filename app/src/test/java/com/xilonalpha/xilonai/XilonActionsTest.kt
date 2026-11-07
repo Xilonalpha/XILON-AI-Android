@@ -21,12 +21,23 @@ class XilonActionsTest {
             XilonActions.propose("caută pe web vremea")?.kind)
     }
     @Test fun mediaControlsAreDetectedWithoutExecuting() {
-        assertEquals(XilonActions.Kind.PLAY_PAUSE,
+        assertEquals(XilonActions.Kind.PAUSE_MEDIA,
             XilonActions.propose("pauză muzica")?.kind)
+        assertEquals(XilonActions.Kind.PLAY_MEDIA,
+            XilonActions.propose("reia muzica")?.kind)
+        assertEquals(XilonActions.Kind.PLAY_PAUSE,
+            XilonActions.propose("play pause")?.kind)
         assertEquals(XilonActions.Kind.NEXT_TRACK,
             XilonActions.propose("melodia următoare")?.kind)
         assertEquals(XilonActions.Kind.PREVIOUS_TRACK,
             XilonActions.propose("melodia anterioară")?.kind)
+    }
+    @Test fun appLaunchRequiresExplicitAllowlistedCommand() {
+        assertEquals(XilonActions.Kind.OPEN_APP,
+            XilonActions.propose("deschide whatsapp")?.kind)
+        assertEquals(XilonActions.Kind.OPEN_APP,
+            XilonActions.propose("open youtube")?.kind)
+        assertNull(XilonActions.propose("deschide aplicația bancară"))
     }
     @Test fun volumeCommandsAreExplicit() {
         assertEquals(XilonActions.Kind.VOLUME_UP,
