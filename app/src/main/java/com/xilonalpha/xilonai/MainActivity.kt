@@ -326,6 +326,7 @@ private fun InstalledModelsScreen() {
     var maxResponseTokens by remember { mutableIntStateOf(16) }
     var response by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
+    val stopRequested = remember { AtomicBoolean(false) }
     var loadingModel by remember { mutableStateOf<String?>(null) }
     var loadDurationMs by remember { mutableStateOf<Long?>(null) }
     var generationDurationMs by remember { mutableStateOf<Long?>(null) }
@@ -572,6 +573,7 @@ private fun InstalledModelsScreen() {
         }
         OutlinedTextField(value = prompt, onValueChange = { prompt = it }, label = { Text("Mesaj pentru XILON AI") }, modifier = Modifier.fillMaxWidth(), maxLines = 4)
         Button(enabled = !busy && prompt.isNotBlank(), onClick = {
+            stopRequested.set(false)
             busy = true
             response = ""
             val submitted = prompt
@@ -621,10 +623,11 @@ private fun InstalledModelsScreen() {
                 val tokenCount = result.getOrNull()?.let { runCatching { LocalLlama.countTokens(it) }.getOrNull() }
                 val timings = runCatching { LocalLlama.lastTimings() }.getOrNull()
                 val memoryAfter = InferenceProfiler.snapshot()
-                val nextHistory = if (result.isSuccess)
+                val completed = result.isSuccess && !stopRequested.get()
+                val nextHistory = if (completed)
                     completeHistorySnapshot + (submitted to result.getOrThrow())
                 else emptyList()
-                val saved = if (result.isSuccess) runCatching {
+                val saved = if (completed) runCatching {
                     LocalConversationStore.save(context, modelSnapshot, nextHistory)
                 } else null
                 (context as ComponentActivity).runOnUiThread {
@@ -633,8 +636,8 @@ private fun InstalledModelsScreen() {
                     nativeTimings = timings
                     currentPssMiB = memoryAfter.totalPssKiB / 1024.0
                     nativeHeapMiB = memoryAfter.nativeHeapKiB / 1024.0
-                    response = result.getOrElse { "Eroare: ${it.message}" }
-                    if (result.isSuccess) {
+                    response = if (stopRequested.get()) "Generare oprită. Text parțial:\\n" + result.getOrDefault(response) else result.getOrElse { "Eroare: ${it.message}" }
+                    if (completed) {
                         chatHistory = nextHistory
                         prompt = ""
                         if (saved?.isFailure == true) response += "\\nAtenție: istoricul nu a putut fi salvat local."
@@ -652,7 +655,7 @@ private fun InstalledModelsScreen() {
         if (busy && loadingModel == null) {
             OutlinedButton(
                 modifier = Modifier.fillMaxWidth(),
-                onClick = { LocalLlama.requestStop() }
+                onClick = { stopRequested.set(true); LocalLlama.requestStop() }
             ) { Text("Oprește generarea") }
             LinearProgressIndicator(Modifier.fillMaxWidth())
         }
