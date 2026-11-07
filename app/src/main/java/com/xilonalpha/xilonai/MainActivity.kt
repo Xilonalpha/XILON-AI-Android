@@ -218,7 +218,7 @@ private fun InstalledModelsScreen() {
     var busy by remember { mutableStateOf(false) }
     val models = remember(revision) { InstalledModels.list(context) }
     Text("Modele instalate", style = MaterialTheme.typography.titleLarge)
-    Text("Fișierele GGUF sunt păstrate local. Chatul offline va fi activat după integrarea llama.cpp.")
+    Text("Modelele GGUF complete pot fi încărcate local. Fișierele imatrix nu sunt modele de conversație.")
     OutlinedButton(onClick = { revision++ }) { Text("Reîmprospătează") }
     if (activeModel.isNotBlank()) {
         Text("Model activ: $activeModel")
@@ -250,6 +250,7 @@ private fun InstalledModelsScreen() {
             }
         }
     }
+    if (activeModel.isBlank() && response.isNotBlank()) Text(response)
     if (models.isEmpty()) {
         Text("Niciun model instalat. Deschide fila Modele pentru descărcare.")
     }
@@ -263,14 +264,19 @@ private fun InstalledModelsScreen() {
                         runCatching { NativeGgufProbe.inspect(model) }.getOrNull()
                     }
                     Text(if (header != null) "GGUF v${header.version} · ${header.tensorCount} tensori · ${header.metadataCount} metadate" else "GGUF: antet invalid sau bibliotecă nativă indisponibilă")
-                    Button(enabled = !busy, onClick = {
+                    val auxiliary = model.name.contains("imatrix", ignoreCase = true) ||
+                        model.name.contains("importance_matrix", ignoreCase = true)
+                    if (auxiliary) Text("Fișier auxiliar imatrix: nu este un model AI executabil.", color = MaterialTheme.colorScheme.error)
+                    Button(enabled = !busy && !auxiliary, onClick = {
                         busy = true
+                        response = "Se încarcă modelul în memoria telefonului..."
                         thread(name = "llama-load") {
-                            val loaded = runCatching { LocalLlama.loadModel(model) }.getOrDefault(false)
+                            val attempt = runCatching { LocalLlama.loadModel(model) }
+                            val loaded = attempt.getOrDefault(false)
                             (context as ComponentActivity).runOnUiThread {
                                 activeModel = if (loaded) model.name else ""
                                 chatHistory = emptyList()
-                                response = if (loaded) "Model încărcat. Poți trimite un mesaj." else "Nu s-a putut încărca modelul."
+                                response = if (loaded) "Model încărcat. Poți trimite un mesaj." else "Încărcarea a eșuat: ${attempt.exceptionOrNull()?.message ?: "format incompatibil, model incomplet sau memorie insuficientă"}."
                                 busy = false
                             }
                         }
