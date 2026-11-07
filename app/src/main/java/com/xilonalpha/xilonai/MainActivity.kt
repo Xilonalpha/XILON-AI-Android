@@ -216,6 +216,7 @@ private fun InstalledModelsScreen() {
     var prompt by remember { mutableStateOf("") }
     var response by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
+    var loadingModel by remember { mutableStateOf<String?>(null) }
     val models = remember(revision) { InstalledModels.list(context) }
     Text("Modele instalate", style = MaterialTheme.typography.titleLarge)
     Text("Modelele GGUF complete pot fi încărcate local. Fișierele imatrix nu sunt modele de conversație.")
@@ -250,6 +251,10 @@ private fun InstalledModelsScreen() {
             }
         }
     }
+    if (busy && loadingModel != null) {
+        LinearProgressIndicator(Modifier.fillMaxWidth())
+        Text("Se încarcă ${loadingModel}…")
+    }
     if (activeModel.isBlank() && response.isNotBlank()) Text(response)
     if (models.isEmpty()) {
         Text("Niciun model instalat. Deschide fila Modele pentru descărcare.")
@@ -269,6 +274,7 @@ private fun InstalledModelsScreen() {
                     if (auxiliary) Text("Fișier auxiliar imatrix: nu este un model AI executabil.", color = MaterialTheme.colorScheme.error)
                     Button(enabled = !busy && !auxiliary, onClick = {
                         busy = true
+                        loadingModel = model.name
                         response = "Se încarcă modelul în memoria telefonului..."
                         thread(name = "llama-load") {
                             val attempt = runCatching { LocalLlama.loadModel(model) }
@@ -278,9 +284,10 @@ private fun InstalledModelsScreen() {
                                 chatHistory = emptyList()
                                 response = if (loaded) "Model încărcat. Poți trimite un mesaj." else "Încărcarea a eșuat: ${attempt.exceptionOrNull()?.message ?: "format incompatibil, model incomplet sau memorie insuficientă"}."
                                 busy = false
+                                loadingModel = null
                             }
                         }
-                    }) { Text("Încarcă pentru chat") }
+                    }) { Text(if (loadingModel == model.name) "Se încarcă…" else "Încarcă pentru chat") }
                     TextButton(onClick = { confirmDelete = model.name }) { Text("Șterge modelul") }
                 }
             }
