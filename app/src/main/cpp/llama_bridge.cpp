@@ -130,7 +130,7 @@ static jstring generate_impl(JNIEnv* env, jstring prompt, jint max_tokens, jobje
     std::vector<llama_token> tokens(required);
     const int count = llama_tokenize(vocab, input.c_str(), static_cast<int32_t>(input.size()),
                                      tokens.data(), required, true, false);
-    const int limit = std::max(1, std::min(512, static_cast<int>(max_tokens)));
+    const int limit = std::max(1, std::min(3072, static_cast<int>(max_tokens)));
     if (count <= 0) return fail(env, "Tokenization failed");
     const int available = static_cast<int>(llama_n_ctx(context));
     // Do not truncate raw tokens: this can break special role markers and chat templates.
