@@ -27,17 +27,30 @@ fun XilonHtmlPreview(html: String, onSceneGlb: ((ByteArray?, String?) -> Unit)? 
                 settings.javaScriptEnabled = true
                 setOnLongClickListener {
                     if (onSceneGlb != null) {
-                        evaluateJavascript(XilonSceneGlb.javascript) { encoded ->
-                            runCatching {
-                                val decoded = org.json.JSONTokener(encoded).nextValue() as String
-                                val payload = JSONObject(decoded)
-                                val error = payload.optString("error")
-                                val base64 = payload.optString("glb")
-                                if (base64.isNotBlank()) {
-                                    require(base64.length <= 12_000_000) { "GLB prea mare pentru transfer." }
-                                    onSceneGlb(Base64.decode(base64, Base64.DEFAULT), null)
-                                } else onSceneGlb(null, error.ifBlank { "Export GLB indisponibil" })
-                            }.onFailure { onSceneGlb(null, "Export GLB eșuat: ${it.message}") }
+                        evaluateJavascript(XilonSceneGlb.javascript) {
+                            var attempts = 0
+                            fun poll() {
+                                evaluateJavascript(XilonSceneGlb.poll) { encoded ->
+                                    val decoded = runCatching {
+                                        org.json.JSONTokener(encoded).nextValue() as String
+                                    }.getOrDefault("")
+                                    if (decoded.isBlank() && attempts++ < 40) {
+                                        postDelayed({ poll() }, 250L)
+                                    } else if (decoded.isBlank()) {
+                                        onSceneGlb(null, "Export GLB expirat după 10 secunde.")
+                                    } else {
+                                        runCatching {
+                                            val payload = JSONObject(decoded)
+                                            val base64 = payload.optString("glb")
+                                            if (base64.isNotBlank()) {
+                                                require(base64.length <= 12_000_000) { "GLB prea mare." }
+                                                onSceneGlb(Base64.decode(base64, Base64.DEFAULT), null)
+                                            } else onSceneGlb(null, payload.optString("error", "Export eșuat"))
+                                        }.onFailure { onSceneGlb(null, "Export GLB eșuat: ${it.message}") }
+                                    }
+                                }
+                            }
+                            poll()
                         }
                         true
                     } else false
