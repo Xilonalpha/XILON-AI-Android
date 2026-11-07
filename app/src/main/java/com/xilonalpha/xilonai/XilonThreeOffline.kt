@@ -36,11 +36,11 @@ object XilonThreeOffline {
             }
         }
         if (usesClassic && !usesModule) {
-            val script = Regex("""(?i)<script\\b[^>]*\\bsrc\\s*=\\s*["']https://xilon-preview\\.invalid/three\\.min\\.js["'][^>]*>\\s*</script>""")
+            val script = Regex("""(?i)<script\b[^>]*\bsrc\s*=\s*["']https://xilon-preview\.invalid/three\.min\.js["'][^>]*>\s*</script>""")
             val found = script.find(result)
             if (found != null) return result.replaceRange(found.range, found.value + loader)
         }
-        val head = Regex("""(?i)<head\\b[^>]*>""")
+        val head = Regex("""(?i)<head\b[^>]*>""")
         val found = head.find(result)
         return if (found != null) result.replaceRange(found.range, found.value + loader)
             else loader + result
