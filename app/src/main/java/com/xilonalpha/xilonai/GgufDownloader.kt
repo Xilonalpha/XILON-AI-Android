@@ -46,6 +46,7 @@ object GgufDownloader {
         connection.connectTimeout = 15000
         connection.readTimeout = 30000
         connection.instanceFollowRedirects = true
+        connection.setRequestProperty("Accept-Encoding", "identity")
         if (offset > 0) connection.setRequestProperty("Range", "bytes=$offset-")
         try {
             val status = connection.responseCode
@@ -53,6 +54,7 @@ object GgufDownloader {
             val append = offset > 0 && status == 206 &&
                 connection.getHeaderField("Content-Range")?.startsWith("bytes $offset-") == true
             if (status == 206 && !append) error("Invalid partial-content response")
+            if (status == 206 && offset == 0L) error("Unexpected partial-content response")
             if (!append) offset = 0L
             java.io.FileOutputStream(partial, append).use { output ->
                 connection.inputStream.use { input ->
