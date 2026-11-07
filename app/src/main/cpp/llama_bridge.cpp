@@ -70,20 +70,34 @@ Java_com_xilonalpha_xilonai_LocalLlama_generate(JNIEnv* env, jobject, jstring pr
     const auto input = utf8(env, prompt);
     if (input.empty()) return env->NewStringUTF("");
     const llama_vocab* vocab = llama_model_get_vocab(model);
-    const int required = -llama_tokenize(vocab, input.c_str(), static_cast<int32_t>(input.size()),
-                                          nullptr, 0, true, false);
-    if (required <= 0 || required > 4096) return env->NewStringUTF("Prompt too long");
+    const int probe = llama_tokenize(vocab, input.c_str(), static_cast<int32_t>(input.size()),
+                                     nullptr, 0, true, false);
+    const int required = probe < 0 ? -probe : probe;
+    if (required <= 0 || required > 32768) return env->NewStringUTF("Prompt too long");
     std::vector<llama_token> tokens(required);
     const int count = llama_tokenize(vocab, input.c_str(), static_cast<int32_t>(input.size()),
                                      tokens.data(), required, true, false);
     const int limit = std::max(1, std::min(512, static_cast<int>(max_tokens)));
-    if (count <= 0 || count + limit > static_cast<int>(llama_n_ctx(context)))
-        return env->NewStringUTF("Context limit exceeded");
+    if (count <= 0) return env->NewStringUTF("Tokenization failed");
+    const int available = static_cast<int>(llama_n_ctx(context));
+    if (count + limit > available) {
+        // Keep the beginning-of-sequence token and the newest conversational context.
+        const int keep = available - limit;
+        if (keep < 2) return env->NewStringUTF("Context limit exceeded");
+        if (count > keep) {
+            std::vector<llama_token> trimmed;
+            trimmed.reserve(keep);
+            trimmed.push_back(tokens.front());
+            trimmed.insert(trimmed.end(), tokens.begin() + count - (keep - 1), tokens.begin() + count);
+            tokens.swap(trimmed);
+        }
+    }
+    const int effective_count = static_cast<int>(tokens.size());
     llama_memory_clear(llama_get_memory(context), true);
     const auto prompt_start = Clock::now();
     const int chunk = 512;
-    for (int i = 0; i < count; i += chunk) {
-        const int n = std::min(chunk, count - i);
+    for (int i = 0; i < effective_count; i += chunk) {
+        const int n = std::min(chunk, effective_count - i);
         if (llama_decode(context, llama_batch_get_one(tokens.data() + i, n)) != 0)
             return env->NewStringUTF("Prompt evaluation failed");
     }
@@ -99,8 +113,10 @@ Java_com_xilonalpha_xilonai_LocalLlama_generate(JNIEnv* env, jobject, jstring pr
         char piece[512];
         int n = llama_token_to_piece(vocab, token, piece, sizeof(piece), 0, true);
         if (n > 0) output.append(piece, n);
-        llama_token next = token;
-        if (llama_decode(context, llama_batch_get_one(&next, 1)) != 0) break;
+        if (i + 1 < limit) {
+            llama_token next = token;
+            if (llama_decode(context, llama_batch_get_one(&next, 1)) != 0) break;
+        }
     }
     llama_sampler_free(sampler);
     last_decode_ms = millis(decode_start);
