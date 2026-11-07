@@ -9,7 +9,7 @@ object XilonThreeDemo {
 </head><body><script>
 if(typeof THREE==='undefined'){document.body.textContent='Three.js indisponibil';}
 else {
-const scene=new THREE.Scene();scene.background=new THREE.Color(0x10152b);
+const scene=new THREE.Scene();window.xilonScene=scene;scene.background=new THREE.Color(0x10152b);
 const camera=new THREE.PerspectiveCamera(60,1,.1,100);camera.position.z=4;
 const renderer=new THREE.WebGLRenderer({antialias:true});
 document.body.appendChild(renderer.domElement);
