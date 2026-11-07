@@ -34,4 +34,9 @@ class XilonActionsTest {
         assertEquals(XilonActions.Kind.VOLUME_DOWN,
             XilonActions.propose("micșorează volumul")?.kind)
     }
+    @Test fun whatsappDraftRequiresExplicitPrefix() {
+        assertEquals(XilonActions.Kind.SHARE_MESSAGE,
+            XilonActions.propose("trimite pe whatsapp: Salut!")?.kind)
+        assertNull(XilonActions.propose("Cum pot trimite pe WhatsApp un mesaj?"))
+    }
 }
