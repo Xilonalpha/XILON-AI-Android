@@ -116,14 +116,17 @@ private fun XilonHome() {
             }
             if (selected == 0) {
                 InstalledModelsScreen()
+            } else if (selected == 1) {
+                Column(
+                    Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) { ModelExplorer() }
             } else {
                 Column(
                     Modifier.fillMaxSize().verticalScroll(rememberScrollState())
                         .padding(horizontal = 18.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    if (selected == 1) ModelExplorer() else DeviceInfo()
-                }
+                ) { DeviceInfo() }
             }
         }
     }
