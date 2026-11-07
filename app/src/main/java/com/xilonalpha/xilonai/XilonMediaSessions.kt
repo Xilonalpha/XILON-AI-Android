@@ -2,11 +2,9 @@ package com.xilonalpha.xilonai
 
 import android.content.ComponentName
 import android.content.Context
-import android.media.session.MediaController
 import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
 import android.provider.Settings
-import android.text.TextUtils
 
 /**
  * Active media session controls. Requires the user to enable XILON's notification
@@ -24,6 +22,40 @@ object XilonMediaSessions {
         return enabled.split(':').any {
             ComponentName.unflattenFromString(it) == component
         }
+    }
+
+    data class Snapshot(
+        val packageName: String,
+        val title: String?,
+        val artist: String?,
+        val state: String
+    )
+
+    /** Read-only snapshot of an active session, only after explicit user permission. */
+    fun snapshot(context: Context): Snapshot? {
+        if (!hasAccess(context)) return null
+        val manager = context.getSystemService(Context.MEDIA_SESSION_SERVICE)
+            as? MediaSessionManager ?: return null
+        val sessions = runCatching {
+            manager.getActiveSessions(ComponentName(context, XilonMediaListener::class.java))
+        }.getOrNull() ?: return null
+        val controller = sessions.firstOrNull {
+            it.playbackState?.state == PlaybackState.STATE_PLAYING
+        } ?: sessions.firstOrNull {
+            it.playbackState?.state == PlaybackState.STATE_PAUSED
+        } ?: return null
+        val state = when (controller.playbackState?.state) {
+            PlaybackState.STATE_PLAYING -> "Redare"
+            PlaybackState.STATE_PAUSED -> "Pauză"
+            else -> "Necunoscut"
+        }
+        val metadata = controller.metadata
+        return Snapshot(
+            controller.packageName,
+            metadata?.getString(android.media.MediaMetadata.METADATA_KEY_TITLE),
+            metadata?.getString(android.media.MediaMetadata.METADATA_KEY_ARTIST),
+            state
+        )
     }
 
     fun command(context: Context, command: Command): Result {
