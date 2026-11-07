@@ -21,7 +21,10 @@ object XilonActionPlanner {
                 XilonActions.Proposal(XilonActions.Kind.SET_VOLUME,
                     "Volum media la ${match.groupValues[1]}%",
                     "Setează volumul media la procentul solicitat.")
-            } else XilonActions.propose(part) ?: return null
+            } else {
+                if (match != null) return null // Invalid percentage must not fall through to volume-step commands.
+                XilonActions.propose(part) ?: return null
+            }
             Step(proposal, part)
         }
         return Plan(steps)
