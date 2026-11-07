@@ -36,6 +36,11 @@ object ModelCompatibility {
         val mem = ActivityManager.MemoryInfo().also(manager::getMemoryInfo)
         val storage = StatFs(context.filesDir.absolutePath).availableBytes
         val is64 = Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()
+        // Use both total device RAM and currently available memory; Android may reclaim
+        // cached pages, so this remains an estimate rather than a hard admission test.
+        val conservativeRamBudget = minOf(mem.totalMem * 75L / 100L,
+            mem.availMem * 85L / 100L)
+        val storageBudget = (storage - 256L * MIB).coerceAtLeast(0L)
         return (0 until siblings.length()).mapNotNull { index ->
             val item = siblings.optJSONObject(index) ?: return@mapNotNull null
             val filename = item.optString("rfilename")
@@ -55,13 +60,13 @@ object ModelCompatibility {
                 size + size * 35L / 100L + 512L * MIB else -1L
             val status = when {
                 size <= 0L || estimated <= 0L -> CompatibilityStatus.UNKNOWN
-                !is64 || size > storage || estimated > mem.totalMem * 75L / 100L ->
+                !is64 || size > storageBudget || estimated > conservativeRamBudget ->
                     CompatibilityStatus.TOO_LARGE
                 else -> CompatibilityStatus.ESTIMATED
             }
             val reason = when (status) {
                 CompatibilityStatus.UNKNOWN -> "File size unavailable; cannot estimate"
-                CompatibilityStatus.TOO_LARGE -> "64-bit ABI, free storage or conservative RAM budget insufficient"
+                CompatibilityStatus.TOO_LARGE -> "Resurse insuficiente acum: RAM disponibil estimat ${conservativeRamBudget / MIB} MiB; spațiu utilizabil ${storageBudget / MIB} MiB"
                 CompatibilityStatus.ESTIMATED -> "Cuantizare: ${analysis.quantization ?: "necunoscută"}; RAM estimat, arhitectură neverificată"
             }
             GgufCandidate(filename, size, estimated, status, reason,
