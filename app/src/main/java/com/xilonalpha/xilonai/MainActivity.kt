@@ -321,6 +321,9 @@ private fun InstalledModelsScreen() {
     var loadDurationMs by remember { mutableStateOf<Long?>(null) }
     var generationDurationMs by remember { mutableStateOf<Long?>(null) }
     var outputTokenCount by remember { mutableStateOf<Int?>(null) }
+    var loadMemoryDeltaMiB by remember { mutableStateOf<Double?>(null) }
+    var currentPssMiB by remember { mutableStateOf<Double?>(null) }
+    var nativeHeapMiB by remember { mutableStateOf<Double?>(null) }
     val models = remember(revision) { InstalledModels.list(context) }
     Text("Modele instalate", style = MaterialTheme.typography.titleLarge)
     Text("Modelele GGUF complete pot fi încărcate local. Fișierele imatrix nu sunt modele de conversație.")
@@ -328,6 +331,9 @@ private fun InstalledModelsScreen() {
     if (activeModel.isNotBlank()) {
         Text("Model activ: $activeModel")
         loadDurationMs?.let { Text("Timp de încărcare: $it ms") }
+        loadMemoryDeltaMiB?.let { Text("Variație memorie PSS la încărcare: %.1f MiB".format(java.util.Locale.ROOT, it)) }
+        currentPssMiB?.let { Text("Memorie proces PSS: %.1f MiB".format(java.util.Locale.ROOT, it)) }
+        nativeHeapMiB?.let { Text("Heap nativ alocat: %.1f MiB".format(java.util.Locale.ROOT, it)) }
         generationDurationMs?.let { elapsed ->
             Text("Timp ultima generare: $elapsed ms")
             val tokens = outputTokenCount
@@ -351,9 +357,12 @@ private fun InstalledModelsScreen() {
                 val result = runCatching { LocalLlama.generate(conversation, 128) }
                 val elapsed = android.os.SystemClock.elapsedRealtime() - startedAt
                 val tokenCount = result.getOrNull()?.let { runCatching { LocalLlama.countTokens(it) }.getOrNull() }
+                val memoryAfter = InferenceProfiler.snapshot()
                 (context as ComponentActivity).runOnUiThread {
                     generationDurationMs = elapsed
                     outputTokenCount = tokenCount
+                    currentPssMiB = memoryAfter.totalPssKiB / 1024.0
+                    nativeHeapMiB = memoryAfter.nativeHeapKiB / 1024.0
                     response = result.getOrElse { "Eroare: ${it.message}" }
                     if (result.isSuccess) chatHistory = chatHistory + (submitted to response)
                     busy = false
@@ -397,12 +406,17 @@ private fun InstalledModelsScreen() {
                         loadingModel = model.name
                         response = "Se încarcă modelul în memoria telefonului..."
                         thread(name = "llama-load") {
+                            val memoryBefore = InferenceProfiler.snapshot()
                             val startedAt = android.os.SystemClock.elapsedRealtime()
                             val attempt = runCatching { LocalLlama.loadModel(model) }
+                            val memoryAfter = InferenceProfiler.snapshot()
                             val elapsed = android.os.SystemClock.elapsedRealtime() - startedAt
                             val loaded = attempt.getOrDefault(false)
                             (context as ComponentActivity).runOnUiThread {
                                 loadDurationMs = if (loaded) elapsed else null
+                                loadMemoryDeltaMiB = if (loaded) InferenceProfiler.deltaMiB(memoryBefore, memoryAfter) else null
+                                currentPssMiB = memoryAfter.totalPssKiB / 1024.0
+                                nativeHeapMiB = memoryAfter.nativeHeapKiB / 1024.0
                                 generationDurationMs = null
                                 outputTokenCount = null
                                 activeModel = if (loaded) model.name else ""
