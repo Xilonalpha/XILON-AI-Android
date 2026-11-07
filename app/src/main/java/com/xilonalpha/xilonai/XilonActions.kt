@@ -66,7 +66,7 @@ object XilonActions {
                 val audio = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
                 when (proposal.kind) {
                     Kind.SET_VOLUME -> {
-                        val percent = Regex("""(\\d{1,3})\\s*%""").find(originalMessage)
+                        val percent = Regex("""(\d{1,3})\s*%""").find(originalMessage)
                             ?.groupValues?.get(1)?.toIntOrNull() ?: return false
                         if (percent !in 0..100) return false
                         val max = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
