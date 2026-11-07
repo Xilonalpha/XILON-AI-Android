@@ -344,6 +344,7 @@ private fun InstalledModelsScreen() {
     var response by remember { mutableStateOf("") }
     var htmlExportStatus by remember { mutableStateOf("") }
     var pendingHtml by remember { mutableStateOf<String?>(null) }
+    var previewHtml by remember { mutableStateOf<String?>(null) }
     val htmlSaver = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/html")
     ) { uri ->
@@ -471,10 +472,15 @@ private fun InstalledModelsScreen() {
         val exportableHtml = XilonHtmlExport.extract(response)
             ?: chatHistory.lastOrNull()?.second?.let { XilonHtmlExport.extract(it) }
         if (!busy && exportableHtml != null) {
-            OutlinedButton(onClick = {
-                pendingHtml = exportableHtml
-                htmlSaver.launch("xilon-scena-3d.html")
-            }) { Text("Salvează scena HTML") }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = {
+                    pendingHtml = exportableHtml
+                    htmlSaver.launch("xilon-scena-3d.html")
+                }) { Text("Salvează HTML") }
+                OutlinedButton(onClick = { previewHtml = exportableHtml }) {
+                    Text("Previzualizare 3D")
+                }
+            }
         }
         if (htmlExportStatus.isNotBlank()) Text(htmlExportStatus,
             style = MaterialTheme.typography.bodySmall)
