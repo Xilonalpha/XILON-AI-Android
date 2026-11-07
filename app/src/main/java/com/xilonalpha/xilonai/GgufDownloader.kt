@@ -42,10 +42,10 @@ object GgufDownloader {
         }
         var offset = partial.takeIf { it.exists() }?.length() ?: 0L
         if (offset > expectedBytes) { check(partial.delete()); offset = 0L }
-        val segments = (modelId + "/" + filename).split("/").joinToString("/") {
+        val segments = filename.split("/").joinToString("/") {
             java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20")
         }
-        val connection = URL("https://huggingface.co/$segments/resolve/main").openConnection() as HttpURLConnection
+        val connection = URL("https://huggingface.co/$modelId/resolve/main/$segments").openConnection() as HttpURLConnection
         connection.connectTimeout = 15000
         connection.readTimeout = 30000
         connection.instanceFollowRedirects = true
