@@ -398,6 +398,8 @@ private fun InstalledModelsScreen() {
     }
     val actionPlan = remember(prompt) { XilonActionPlanner.plan(prompt) }
     var actionFeedback by remember { mutableStateOf("") }
+    var mediaSnapshot by remember { mutableStateOf<XilonMediaSessions.Snapshot?>(null) }
+    var mediaStatus by remember { mutableStateOf("") }
     LaunchedEffect(prompt) { actionFeedback = "" }
     val taskDecision = remember(prompt) { XilonCore.classify(prompt) }
     val suggestedModel = remember(revision, prompt) {
@@ -592,6 +594,26 @@ private fun InstalledModelsScreen() {
                     Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            OutlinedButton(onClick = {
+                val access = runCatching { XilonMediaSessions.hasAccess(context) }.getOrDefault(false)
+                mediaSnapshot = if (access) XilonMediaSessions.snapshot(context) else null
+                mediaStatus = when {
+                    !access -> "Acces media neactivat. Spune «activează controlul media» pentru a deschide setările."
+                    mediaSnapshot == null -> "Nicio sesiune media activă cu stare Play/Pause."
+                    else -> "Stare citită din sesiunea media Android."
+                }
+            }) { Text("Verifică redarea") }
+            if (mediaSnapshot != null) Text(mediaSnapshot!!.state,
+                style = MaterialTheme.typography.labelSmall)
+        }
+        mediaSnapshot?.let { snapshot ->
+            Text("Media: ${snapshot.title ?: "Titlu indisponibil"} · ${snapshot.artist ?: snapshot.packageName}",
+                style = MaterialTheme.typography.bodySmall)
+        }
+        if (mediaStatus.isNotBlank()) Text(mediaStatus,
+            style = MaterialTheme.typography.labelSmall)
         if (actionPlan != null) {
             Text("Comandă recunoscută local. Verifică pașii înainte de confirmare.",
                 style = MaterialTheme.typography.labelSmall)
