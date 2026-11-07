@@ -15,6 +15,7 @@ import java.util.Locale
  */
 class XilonVoice(private val context: Context) {
     private var recognizer: SpeechRecognizer? = null
+    private var session = 0
 
     fun available(): Boolean =
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
@@ -27,33 +28,41 @@ class XilonVoice(private val context: Context) {
             return
         }
         stop()
+        val currentSession = session
         val service = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
         recognizer = service
         service.setRecognitionListener(object : RecognitionListener {
-            override fun onReadyForSpeech(params: Bundle?) { onStatus("Ascult offline…") }
-            override fun onBeginningOfSpeech() { onStatus("Te ascult…") }
+            override fun onReadyForSpeech(params: Bundle?) { if (currentSession == session) onStatus("Ascult offline…") }
+            override fun onBeginningOfSpeech() { if (currentSession == session) onStatus("Te ascult…") }
             override fun onRmsChanged(rmsdB: Float) {}
             override fun onBufferReceived(buffer: ByteArray?) {}
-            override fun onEndOfSpeech() { onStatus("Procesez vocea local…") }
+            override fun onEndOfSpeech() { if (currentSession == session) onStatus("Procesez vocea local…") }
             override fun onError(error: Int) {
+                if (currentSession != session) return
                 onStatus("Recunoașterea offline a eșuat (cod $error).")
                 stop()
             }
             override fun onResults(results: Bundle?) {
+                if (currentSession != session) return
                 val text = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                     ?.firstOrNull().orEmpty()
                 if (text.isNotBlank()) onText(text)
                 onStatus(if (text.isBlank()) "Nu am identificat cuvinte." else "Dictare completă.")
                 stop()
             }
-            override fun onPartialResults(partialResults: Bundle?) {}
+            override fun onPartialResults(partialResults: Bundle?) {
+                if (currentSession != session) return
+                val partial = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                    ?.firstOrNull().orEmpty()
+                if (partial.isNotBlank()) onStatus("Recunoscut parțial: " + partial.take(120))
+            }
             override fun onEvent(eventType: Int, params: Bundle?) {}
         })
         val request = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault().toLanguageTag())
-            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
+            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
         }
         service.startListening(request)
@@ -61,6 +70,7 @@ class XilonVoice(private val context: Context) {
 
     fun stop() {
         check(android.os.Looper.myLooper() == android.os.Looper.getMainLooper())
+        session++
         recognizer?.cancel()
         recognizer?.destroy()
         recognizer = null
