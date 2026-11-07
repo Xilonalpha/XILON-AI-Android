@@ -9,6 +9,8 @@ object LocalLlama {
     private external fun load(path: String, contextSize: Int): Boolean
     external fun unload()
     external fun generate(prompt: String, maxTokens: Int): String
+    /** Emits cumulative partial text from the native inference thread. */
+    external fun generateStreaming(prompt: String, maxTokens: Int, onUpdate: (String) -> Unit): String
     /** Tokenizes output using the active model vocabulary. Must run off the UI thread. */
     external fun countTokens(text: String): Int
     /** [prompt evaluation ms, decode ms, generated tokens] from the last native call. */
