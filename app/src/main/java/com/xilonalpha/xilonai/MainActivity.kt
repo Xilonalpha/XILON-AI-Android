@@ -375,14 +375,6 @@ private fun InstalledModelsScreen() {
         }
         if (busy && loadingModel == null) Text("XILON AI generează răspunsul local…")
     }
-    Text("Modele instalate", style = MaterialTheme.typography.titleLarge)
-    Text("Modelele GGUF complete pot fi încărcate local. Fișierele imatrix nu sunt modele de conversație.")
-    Button(enabled = !importBusy && !busy, onClick = {
-        filePicker.launch(arrayOf("application/octet-stream", "application/x-gguf", "*/*"))
-    }) { Text("Adaugă model GGUF din telefon") }
-    if (importBusy) LinearProgressIndicator(Modifier.fillMaxWidth())
-    if (importMessage.isNotBlank()) Text(importMessage, style = MaterialTheme.typography.bodySmall)
-    OutlinedButton(onClick = { revision++ }) { Icon(Icons.Filled.Refresh, null); Spacer(Modifier.width(8.dp)); Text("Reîmprospătează") }
     if (activeModel.isNotBlank()) {
         Text("Model activ: " + activeModel.take(44) + if (activeModel.length > 44) "…" else "")
         var showDiagnostics by remember { mutableStateOf(false) }
@@ -412,7 +404,7 @@ private fun InstalledModelsScreen() {
             }
         }
         }
-        Text("Istoric privat și recuperare locală a mesajelor relevante, fără sincronizare online.", style = MaterialTheme.typography.bodySmall)
+        Text("Memorie locală privată", style = MaterialTheme.typography.labelMedium)
         OutlinedButton(enabled = !busy, onClick = {
             val modelName = activeModel
             busy = true
@@ -429,7 +421,7 @@ private fun InstalledModelsScreen() {
                 }
             }
         }) { Text("Șterge istoricul conversației") }
-        Text("Lungimea răspunsului (telefonul a măsurat ~1,1 tokenuri/s)", style = MaterialTheme.typography.bodySmall)
+        Text("Lungimea răspunsului", style = MaterialTheme.typography.bodySmall)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(16, 32, 64).forEach { count ->
                 if (maxResponseTokens == count) {
@@ -527,6 +519,16 @@ private fun InstalledModelsScreen() {
             }
         }
     }
+    HorizontalDivider()
+    Text("Gestionare modele", style = MaterialTheme.typography.titleMedium)
+    Text("Modele instalate", style = MaterialTheme.typography.titleLarge)
+    Text("Modelele GGUF complete pot fi încărcate local. Fișierele imatrix nu sunt modele de conversație.")
+    Button(enabled = !importBusy && !busy, onClick = {
+        filePicker.launch(arrayOf("application/octet-stream", "application/x-gguf", "*/*"))
+    }) { Text("Adaugă model GGUF din telefon") }
+    if (importBusy) LinearProgressIndicator(Modifier.fillMaxWidth())
+    if (importMessage.isNotBlank()) Text(importMessage, style = MaterialTheme.typography.bodySmall)
+    OutlinedButton(onClick = { revision++ }) { Icon(Icons.Filled.Refresh, null); Spacer(Modifier.width(8.dp)); Text("Reîmprospătează") }
     if (busy && loadingModel != null) {
         LinearProgressIndicator(Modifier.fillMaxWidth())
         Text("Se încarcă ${loadingModel}…")
