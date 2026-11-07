@@ -9,9 +9,9 @@ object XilonThreeOffline {
         """(?i)(<script\b[^>]*\bsrc\s*=\s*["'])(https?://[^"']*/(?:three(?:\.min)?\.js|build/three(?:\.min)?\.js)(?:\?[^"']*)?)(["'][^>]*>\s*</script>)"""
     )
     private val moduleUrl = Regex(
-        """(?i)(\\bfrom\\s*["'])(https?://[^"']*/three\\.module(?:\\.min)?\\.js(?:\\?[^"']*)?)(["'])"""
+        """(?i)(\bfrom\s*["'])(https?://[^"']*/three\.module(?:\.min)?\.js(?:\?[^"']*)?)(["'])"""
     )
-    private val bareImport = Regex("""\\bfrom\\s*["']three["']""")
+    private val bareImport = Regex("""\bfrom\s*["']three["']""")
 
     fun prepare(html: String): String {
         var result = classicScript.replace(html) { match ->
@@ -24,7 +24,7 @@ object XilonThreeOffline {
         if (!bareImport.containsMatchIn(result)) return result
         val prefix = """<script src="https://xilon-preview.invalid/three.min.js"></script>
 <script type="importmap">{"imports":{"three":"https://xilon-preview.invalid/three-module-adapter.js"}}</script>"""
-        val head = Regex("""(?i)<head\\b[^>]*>""")
+        val head = Regex("""(?i)<head\b[^>]*>""")
         val match = head.find(result)
         return if (match != null) result.replaceRange(match.range, match.value + prefix)
             else prefix + result
