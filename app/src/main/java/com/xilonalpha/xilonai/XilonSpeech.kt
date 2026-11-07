@@ -2,7 +2,6 @@ package com.xilonalpha.xilonai
 
 import android.content.Context
 import android.speech.tts.TextToSpeech
-import android.speech.tts.Voice
 import java.util.Locale
 
 /**
@@ -33,7 +32,7 @@ class XilonSpeech(context: Context, private val onStatus: (String) -> Unit) {
                 voice.locale.language == language.language &&
                 TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED !in voice.features.orEmpty()
         }
-        val chosen = candidates.firstOrNull()
+        val chosen = candidates.sortedWith(compareBy({ it.quality * -1 }, { it.name })).firstOrNull()
         if (chosen == null) {
             onStatus("Nu există o voce offline instalată pentru limba ${language.displayLanguage}.")
             return
