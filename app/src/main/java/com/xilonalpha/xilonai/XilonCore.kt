@@ -5,12 +5,14 @@ package com.xilonalpha.xilonai
  * executes commands, or claims that a model supports an untested capability.
  */
 object XilonCore {
-    enum class Task { CHAT, CODE, REASONING, TRANSLATION, SUMMARIZATION }
+    enum class Task { CHAT, CODE, THREE_D, REASONING, TRANSLATION, SUMMARIZATION }
     data class Decision(val task: Task, val explanation: String, val suggestedOutputTokens: Int)
 
     fun classify(message: String): Decision {
         val q = message.lowercase(java.util.Locale.ROOT)
         val task = when {
+            (listOf("3d", "trei dimensiuni", "three.js", "mesh", "model tridimensional").any { q.contains(it) } &&
+                listOf("genere", "cree", "modele", "constru", "desene", "export").any { q.contains(it) }) -> Task.THREE_D
             listOf("cod", "program", "kotlin", "python", "javascript", "c++", "debug",
                 "compile", "compil", "funcție", "function", "bug", "eroare în cod")
                 .any { q.contains(it) } -> Task.CODE
@@ -24,6 +26,7 @@ object XilonCore {
             else -> Task.CHAT
         }
         return when (task) {
+            Task.THREE_D -> Decision(task, "Generare 3D detectată local; verifică instrumentele 3D și export", 512)
             Task.CODE -> Decision(task, "Sarcină de programare detectată local", 128)
             Task.TRANSLATION -> Decision(task, "Traducere detectată local", 96)
             Task.SUMMARIZATION -> Decision(task, "Rezumare detectată local", 128)
@@ -38,6 +41,7 @@ object XilonCore {
         val analysis = ModelIntelligence.analyze(filename)
         if (!analysis.runnableCandidate) return -1000
         return when (task) {
+            Task.THREE_D -> if (listOf("coder", "code", "instruct").any { name.contains(it) }) 20 else 0
             Task.CODE -> if (listOf("coder", "code", "starcoder", "deepseek-coder")
                 .any { name.contains(it) }) 30 else 0
             Task.REASONING -> if (listOf("reason", "r1", "qwq")
