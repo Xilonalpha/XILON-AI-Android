@@ -352,7 +352,7 @@ private fun InstalledModelsScreen() {
                 Text("Estimare end-to-end, include procesarea promptului; nu este benchmark de decodare pură.", style = MaterialTheme.typography.bodySmall)
             }
         }
-        Text("Istoric privat, salvat local pentru fiecare model. Nu este sincronizat online.", style = MaterialTheme.typography.bodySmall)
+        Text("Istoric privat și recuperare locală a mesajelor relevante, fără sincronizare online.", style = MaterialTheme.typography.bodySmall)
         OutlinedButton(enabled = !busy, onClick = {
             val modelName = activeModel
             busy = true
@@ -374,7 +374,9 @@ private fun InstalledModelsScreen() {
             busy = true
             val submitted = prompt
             val completeHistorySnapshot = chatHistory
-            val historySnapshot = completeHistorySnapshot.takeLast(4)
+            val recentHistory = completeHistorySnapshot.takeLast(4)
+            val recalledHistory = LocalMemoryRecall.recall(completeHistorySnapshot, submitted)
+            val historySnapshot = recalledHistory + recentHistory
             val modelSnapshot = activeModel
             thread(name = "local-inference") {
                 val startedAt = android.os.SystemClock.elapsedRealtime()
