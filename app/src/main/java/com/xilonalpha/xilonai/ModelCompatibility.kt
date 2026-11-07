@@ -41,7 +41,7 @@ object ModelCompatibility {
         val conservativeRamBudget = minOf(mem.totalMem * 75L / 100L,
             mem.availMem * 85L / 100L)
         val storageBudget = (storage - 256L * MIB).coerceAtLeast(0L)
-        return (0 until siblings.length()).mapNotNull { index ->
+        val discovered = (0 until siblings.length()).mapNotNull { index ->
             val item = siblings.optJSONObject(index) ?: return@mapNotNull null
             val filename = item.optString("rfilename")
             if (!filename.endsWith(".gguf", ignoreCase = true)) return@mapNotNull null
@@ -71,7 +71,8 @@ object ModelCompatibility {
             }
             GgufCandidate(filename, size, estimated, status, reason,
                 lfs?.optString("oid")?.removePrefix("sha256:")?.takeIf { it.matches(Regex("[a-fA-F0-9]{64}")) })
-        }.sortedWith(compareBy({ it.status != CompatibilityStatus.ESTIMATED }, { it.sizeBytes.takeIf { n -> n > 0 } ?: Long.MAX_VALUE }))
+        }
+        return ModelRecommender.rank(discovered, mem.availMem).map { it.candidate }
     }
 
     private fun getJson(endpoint: String): JSONObject {
