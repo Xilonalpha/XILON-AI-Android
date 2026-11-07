@@ -2,9 +2,9 @@ package com.xilonalpha.xilonai
 
 /** Extracts a complete Wavefront OBJ mesh from a model response. */
 object XilonObjExport {
-    private val vertex = Regex("""^v\\s+[-+0-9.eE]+\\s+[-+0-9.eE]+\\s+[-+0-9.eE]+(?:\\s+.*)?$""")
-    private val face = Regex("""^f\\s+\\S+\\s+\\S+\\s+\\S+(?:\\s+.*)?$""")
-    private val allowed = Regex("""^(?:v|vt|vn|f|o|g|s|usemtl|mtllib|l|p)\\s+.*$""")
+    private val vertex = Regex("""^v\s+[-+0-9.eE]+\s+[-+0-9.eE]+\s+[-+0-9.eE]+(?:\s+.*)?$""")
+    private val face = Regex("""^f\s+\S+\s+\S+\s+\S+(?:\s+.*)?$""")
+    private val allowed = Regex("""^(?:v|vt|vn|f|o|g|s|usemtl|mtllib|l|p)\s+.*$""")
 
     fun extract(answer: String): String? {
         val fenced = Regex("(?s)```(?:obj|wavefront)?\\s*\\n(.*?)```", RegexOption.IGNORE_CASE)
