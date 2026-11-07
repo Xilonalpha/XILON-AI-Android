@@ -699,7 +699,7 @@ private fun InstalledModelsScreen() {
                 val startedAt = android.os.SystemClock.elapsedRealtime()
                 val conversation = ConversationBudget.fit(
                     history = historySnapshot,
-                    tokenBudget = 2048 - outputLimit,
+                    tokenBudget = 4096 - outputLimit,
                     render = { turns ->
                         val roles = mutableListOf("system")
                         val contents = mutableListOf("You are a helpful assistant.")
