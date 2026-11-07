@@ -14,7 +14,7 @@ canvas{width:100%;height:100%;display:block}#error{position:absolute;top:10px;le
 const canvas=document.getElementById('scene'), error=document.getElementById('error');
 const gl=canvas.getContext('webgl',{antialias:true});
 if(!gl){error.textContent='WebGL nu este disponibil pe acest dispozitiv.';return;}
-const vertex='attribute vec3 position;uniform float angle;uniform float aspect;varying vec3 shade;void main(){float c=cos(angle),s=sin(angle);vec3 p=vec3(c*position.x+s*position.z,position.y,-s*position.x+c*position.z);float c2=cos(angle*.7),s2=sin(angle*.7);p=vec3(p.x,c2*p.y-s2*p.z,s2*p.y+c2*p.z);gl_Position=vec4(p.x/aspect,p.y,p.z-4.0);gl_Position.xy*=2.1;shade=position*.5+.5;}';
+const vertex='attribute vec3 position;uniform float angle;uniform float aspect;varying vec3 shade;void main(){float c=cos(angle),s=sin(angle);vec3 p=vec3(c*position.x+s*position.z,position.y,-s*position.x+c*position.z);float c2=cos(angle*.7),s2=sin(angle*.7);p=vec3(p.x,c2*p.y-s2*p.z,s2*p.y+c2*p.z);gl_Position=vec4(p.x*.55/aspect,p.y*.55,p.z*.25,1.0);shade=position*.5+.5;}';
 const fragment='precision mediump float;varying vec3 shade;void main(){gl_FragColor=vec4(.12+shade.x*.12,.32+shade.y*.32,.8+shade.z*.2,1.0);}';
 function shader(type,source){const sh=gl.createShader(type);gl.shaderSource(sh,source);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(sh));return sh;}
 try{
