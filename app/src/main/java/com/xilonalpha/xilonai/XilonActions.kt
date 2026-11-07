@@ -11,12 +11,31 @@ import android.provider.Settings
  * shell commands, arbitrary URLs or silent external side effects.
  */
 object XilonActions {
-    enum class Kind { SETTINGS, MUSIC, WEB_SEARCH, PLAY_PAUSE, NEXT_TRACK, PREVIOUS_TRACK, VOLUME_UP, VOLUME_DOWN, SET_VOLUME, SHARE_MESSAGE, YOUTUBE_SEARCH, MEDIA_ACCESS }
+    enum class Kind { SETTINGS, MUSIC, WEB_SEARCH, PLAY_PAUSE, NEXT_TRACK, PREVIOUS_TRACK, VOLUME_UP, VOLUME_DOWN, SET_VOLUME, SHARE_MESSAGE, YOUTUBE_SEARCH, MEDIA_ACCESS, OPEN_APP }
     data class Proposal(val kind: Kind, val label: String, val explanation: String)
+
+    private val appPackages = mapOf(
+        "whatsapp" to "com.whatsapp",
+        "youtube" to "com.google.android.youtube",
+        "chrome" to "com.android.chrome",
+        "spotify" to "com.spotify.music",
+        "telegram" to "org.telegram.messenger",
+        "maps" to "com.google.android.apps.maps"
+    )
+
+    private fun requestedApp(command: String): String? {
+        val words = command.trim().lowercase(java.util.Locale.ROOT).split(Regex("\\s+"))
+        if (words.size != 2 || words[0] !in setOf(
+                "deschide", "porneste", "pornește", "lanseaza", "lansează", "open", "launch")) return null
+        return appPackages[words[1]]
+    }
 
     fun propose(text: String): Proposal? {
         val q = text.trim().lowercase(java.util.Locale.ROOT)
         return when {
+            requestedApp(q) != null ->
+                Proposal(Kind.OPEN_APP, "Deschide aplicația " + q.substringAfterLast(' '),
+                    "Lansează aplicația instalată după confirmare; nu execută comenzi în interiorul ei.")
             listOf("activează controlul media", "activeaza controlul media",
                 "permisiune control media", "enable media control")
                 .any(q::contains) ->
@@ -96,6 +115,19 @@ object XilonActions {
             } catch (_: SecurityException) { false }
               catch (_: IllegalStateException) { false }
         }
+        if (proposal.kind == Kind.OPEN_APP) {
+            val packageName = requestedApp(originalMessage) ?: return false
+            val launch = context.packageManager.getLaunchIntentForPackage(packageName)
+                ?: return false
+            return try {
+                context.startActivity(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                true
+            } catch (_: android.content.ActivityNotFoundException) {
+                false
+            } catch (_: SecurityException) {
+                false
+            }
+        }
         val intent = when (proposal.kind) {
             Kind.YOUTUBE_SEARCH -> {
                 val query = originalMessage.substringAfter(':', "").trim()
@@ -114,6 +146,7 @@ object XilonActions {
             }
             Kind.PLAY_PAUSE, Kind.NEXT_TRACK, Kind.PREVIOUS_TRACK,
             Kind.VOLUME_UP, Kind.VOLUME_DOWN, Kind.SET_VOLUME -> return false
+            Kind.OPEN_APP -> return false
             Kind.MEDIA_ACCESS -> Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
             Kind.SETTINGS -> Intent(Settings.ACTION_SETTINGS)
             Kind.MUSIC -> Intent("android.intent.action.MUSIC_PLAYER")
