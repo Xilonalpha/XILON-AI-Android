@@ -345,6 +345,23 @@ private fun InstalledModelsScreen() {
     var htmlExportStatus by remember { mutableStateOf("") }
     var pendingHtml by remember { mutableStateOf<String?>(null) }
     var pendingObj by remember { mutableStateOf<String?>(null) }
+    var pendingGlb by remember { mutableStateOf<ByteArray?>(null) }
+    var glbExportStatus by remember { mutableStateOf("") }
+    val glbSaver = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("model/gltf-binary")
+    ) { uri ->
+        val bytes = pendingGlb
+        glbExportStatus = if (uri != null && bytes != null) {
+            runCatching {
+                context.contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
+                    ?: error("Nu pot deschide fișierul GLB.")
+            }.fold(
+                onSuccess = { "Modelul GLB a fost salvat." },
+                onFailure = { "Export GLB eșuat: ${it.message}" }
+            )
+        } else "Export GLB anulat."
+        pendingGlb = null
+    }
     var objExportStatus by remember { mutableStateOf("") }
     val objSaver = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/octet-stream")
@@ -530,11 +547,22 @@ private fun InstalledModelsScreen() {
         val exportableObj = XilonObjExport.extract(response)
             ?: chatHistory.lastOrNull()?.second?.let { XilonObjExport.extract(it) }
         if (!busy && exportableObj != null) {
-            OutlinedButton(onClick = {
-                pendingObj = exportableObj
-                objSaver.launch("xilon-model-3d.obj")
-            }) { Text("Salvează model OBJ") }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = {
+                    pendingObj = exportableObj
+                    objSaver.launch("xilon-model-3d.obj")
+                }) { Text("Salvează OBJ") }
+                OutlinedButton(onClick = {
+                    runCatching { XilonGlbExport.fromObj(exportableObj) }
+                        .onSuccess { bytes ->
+                            pendingGlb = bytes
+                            glbSaver.launch("xilon-model-3d.glb")
+                        }
+                        .onFailure { glbExportStatus = "Conversie GLB eșuată: ${it.message}" }
+                }) { Text("Salvează GLB") }
+            }
         }
+        if (glbExportStatus.isNotBlank()) Text(glbExportStatus, style = MaterialTheme.typography.bodySmall)
         if (objExportStatus.isNotBlank()) Text(objExportStatus,
             style = MaterialTheme.typography.bodySmall)
         if (htmlExportStatus.isNotBlank()) Text(htmlExportStatus,
