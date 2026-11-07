@@ -64,7 +64,8 @@ Java_com_xilonalpha_xilonai_LocalLlama_generate(JNIEnv* env, jobject, jstring pr
     std::vector<llama_token> tokens(required);
     const int count = llama_tokenize(vocab, input.c_str(), static_cast<int32_t>(input.size()),
                                      tokens.data(), required, true, false);
-    if (count <= 0 || count + max_tokens >= static_cast<int>(llama_n_ctx(context)))
+    const int limit = std::max(1, std::min(512, static_cast<int>(max_tokens)));
+    if (count <= 0 || count + limit > static_cast<int>(llama_n_ctx(context)))
         return env->NewStringUTF("Context limit exceeded");
     llama_kv_cache_clear(context);
     const int chunk = 512;
@@ -75,7 +76,6 @@ Java_com_xilonalpha_xilonai_LocalLlama_generate(JNIEnv* env, jobject, jstring pr
     }
     llama_sampler* sampler = llama_sampler_init_greedy();
     std::string output;
-    const int limit = std::max(1, std::min(512, static_cast<int>(max_tokens)));
     for (int i = 0; i < limit; ++i) {
         const llama_token token = llama_sampler_sample(sampler, context, -1);
         if (llama_vocab_is_eog(vocab, token)) break;
