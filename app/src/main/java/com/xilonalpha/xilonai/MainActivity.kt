@@ -114,11 +114,15 @@ private fun XilonHome() {
                     style = MaterialTheme.typography.titleMedium, color = Color.White
                 )
             }
-            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                when (selected) {
-                    0 -> InstalledModelsScreen()
-                    1 -> ModelExplorer()
-                    else -> DeviceInfo()
+            if (selected == 0) {
+                InstalledModelsScreen()
+            } else {
+                Column(
+                    Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                        .padding(horizontal = 18.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    if (selected == 1) ModelExplorer() else DeviceInfo()
                 }
             }
         }
@@ -362,6 +366,13 @@ private fun InstalledModelsScreen() {
         }
     }
     val models = remember(revision) { InstalledModels.list(context) }
+    Column(Modifier.fillMaxSize().imePadding()) {
+        Column(
+            Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+
     if (activeModel.isNotBlank()) {
         Text("Conversație", style = MaterialTheme.typography.titleLarge)
         Text("Model: " + activeModel.take(36) + if (activeModel.length > 36) "…" else "", style = MaterialTheme.typography.bodySmall)
@@ -438,85 +449,6 @@ private fun InstalledModelsScreen() {
             }
         }
         }
-        OutlinedTextField(value = prompt, onValueChange = { prompt = it }, label = { Text("Mesaj") }, modifier = Modifier.fillMaxWidth())
-        Button(enabled = !busy && prompt.isNotBlank(), onClick = {
-            busy = true
-            response = ""
-            val submitted = prompt
-            val completeHistorySnapshot = chatHistory
-            val recentHistory = completeHistorySnapshot.takeLast(4)
-            val recalledHistory = LocalMemoryRecall.recall(completeHistorySnapshot, submitted)
-            val historySnapshot = recalledHistory + recentHistory
-            val modelSnapshot = activeModel
-            val outputLimit = maxResponseTokens
-            thread(name = "local-inference") {
-                try {
-                val startedAt = android.os.SystemClock.elapsedRealtime()
-                val conversation = ConversationBudget.fit(
-                    history = historySnapshot,
-                    tokenBudget = 2048 - outputLimit,
-                    render = { turns ->
-                        val roles = mutableListOf("system")
-                        val contents = mutableListOf("You are a helpful assistant.")
-                        turns.forEach { (question, answer) ->
-                            roles.add("user"); contents.add(question)
-                            roles.add("assistant"); contents.add(answer)
-                        }
-                        roles.add("user"); contents.add(submitted)
-                        val native = runCatching {
-                            LocalLlama.formatChat(roles.toTypedArray(), contents.toTypedArray())
-                        }.getOrNull()
-                        native ?: buildString {
-                            append("You are a helpful assistant.\\n")
-                            turns.forEach { (q, answer) ->
-                                append("User: ").append(q).append("\\nAssistant: ").append(answer).append("\\n")
-                            }
-                            append("User: ").append(submitted).append("\\nAssistant:")
-                        }
-                    },
-                    countTokens = { text -> LocalLlama.countTokens(text) }
-                )
-                val result = if (conversation == null)
-                    Result.failure<String>(IllegalArgumentException("Mesajul depășește contextul disponibil."))
-                else runCatching {
-                    LocalLlama.generateStreaming(conversation, outputLimit) { partial ->
-                        (context as ComponentActivity).runOnUiThread {
-                            response = partial
-                        }
-                    }
-                }
-                val elapsed = android.os.SystemClock.elapsedRealtime() - startedAt
-                val tokenCount = result.getOrNull()?.let { runCatching { LocalLlama.countTokens(it) }.getOrNull() }
-                val timings = runCatching { LocalLlama.lastTimings() }.getOrNull()
-                val memoryAfter = InferenceProfiler.snapshot()
-                val nextHistory = if (result.isSuccess)
-                    completeHistorySnapshot + (submitted to result.getOrThrow())
-                else emptyList()
-                val saved = if (result.isSuccess) runCatching {
-                    LocalConversationStore.save(context, modelSnapshot, nextHistory)
-                } else null
-                (context as ComponentActivity).runOnUiThread {
-                    generationDurationMs = elapsed
-                    outputTokenCount = tokenCount
-                    nativeTimings = timings
-                    currentPssMiB = memoryAfter.totalPssKiB / 1024.0
-                    nativeHeapMiB = memoryAfter.nativeHeapKiB / 1024.0
-                    response = result.getOrElse { "Eroare: ${it.message}" }
-                    if (result.isSuccess) {
-                        chatHistory = nextHistory
-                        prompt = ""
-                        if (saved?.isFailure == true) response += "\\nAtenție: istoricul nu a putut fi salvat local."
-                    }
-                    busy = false
-                }
-                } catch (error: Exception) {
-                    (context as ComponentActivity).runOnUiThread {
-                        response = "Eroare la generarea offline: ${error.message ?: error.javaClass.simpleName}"
-                        busy = false
-                    }
-                }
-            }
-        }) { Text("Generează offline") }
         if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
         if (chatHistory.isNotEmpty()) {
             Text("Istoric conversație", style = MaterialTheme.typography.titleMedium)
@@ -598,6 +530,97 @@ private fun InstalledModelsScreen() {
             }
         }
     }
+    }
+        }
+        if (activeModel.isNotBlank()) {
+            Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 4.dp) {
+                Column(
+                    Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+        OutlinedTextField(value = prompt, onValueChange = { prompt = it }, label = { Text("Mesaj") }, modifier = Modifier.fillMaxWidth())
+        Button(enabled = !busy && prompt.isNotBlank(), onClick = {
+            busy = true
+            response = ""
+            val submitted = prompt
+            val completeHistorySnapshot = chatHistory
+            val recentHistory = completeHistorySnapshot.takeLast(4)
+            val recalledHistory = LocalMemoryRecall.recall(completeHistorySnapshot, submitted)
+            val historySnapshot = recalledHistory + recentHistory
+            val modelSnapshot = activeModel
+            val outputLimit = maxResponseTokens
+            thread(name = "local-inference") {
+                try {
+                val startedAt = android.os.SystemClock.elapsedRealtime()
+                val conversation = ConversationBudget.fit(
+                    history = historySnapshot,
+                    tokenBudget = 2048 - outputLimit,
+                    render = { turns ->
+                        val roles = mutableListOf("system")
+                        val contents = mutableListOf("You are a helpful assistant.")
+                        turns.forEach { (question, answer) ->
+                            roles.add("user"); contents.add(question)
+                            roles.add("assistant"); contents.add(answer)
+                        }
+                        roles.add("user"); contents.add(submitted)
+                        val native = runCatching {
+                            LocalLlama.formatChat(roles.toTypedArray(), contents.toTypedArray())
+                        }.getOrNull()
+                        native ?: buildString {
+                            append("You are a helpful assistant.\\n")
+                            turns.forEach { (q, answer) ->
+                                append("User: ").append(q).append("\\nAssistant: ").append(answer).append("\\n")
+                            }
+                            append("User: ").append(submitted).append("\\nAssistant:")
+                        }
+                    },
+                    countTokens = { text -> LocalLlama.countTokens(text) }
+                )
+                val result = if (conversation == null)
+                    Result.failure<String>(IllegalArgumentException("Mesajul depășește contextul disponibil."))
+                else runCatching {
+                    LocalLlama.generateStreaming(conversation, outputLimit) { partial ->
+                        (context as ComponentActivity).runOnUiThread {
+                            response = partial
+                        }
+                    }
+                }
+                val elapsed = android.os.SystemClock.elapsedRealtime() - startedAt
+                val tokenCount = result.getOrNull()?.let { runCatching { LocalLlama.countTokens(it) }.getOrNull() }
+                val timings = runCatching { LocalLlama.lastTimings() }.getOrNull()
+                val memoryAfter = InferenceProfiler.snapshot()
+                val nextHistory = if (result.isSuccess)
+                    completeHistorySnapshot + (submitted to result.getOrThrow())
+                else emptyList()
+                val saved = if (result.isSuccess) runCatching {
+                    LocalConversationStore.save(context, modelSnapshot, nextHistory)
+                } else null
+                (context as ComponentActivity).runOnUiThread {
+                    generationDurationMs = elapsed
+                    outputTokenCount = tokenCount
+                    nativeTimings = timings
+                    currentPssMiB = memoryAfter.totalPssKiB / 1024.0
+                    nativeHeapMiB = memoryAfter.nativeHeapKiB / 1024.0
+                    response = result.getOrElse { "Eroare: ${it.message}" }
+                    if (result.isSuccess) {
+                        chatHistory = nextHistory
+                        prompt = ""
+                        if (saved?.isFailure == true) response += "\\nAtenție: istoricul nu a putut fi salvat local."
+                    }
+                    busy = false
+                }
+                } catch (error: Exception) {
+                    (context as ComponentActivity).runOnUiThread {
+                        response = "Eroare la generarea offline: ${error.message ?: error.javaClass.simpleName}"
+                        busy = false
+                    }
+                }
+            }
+        }) { Text("Generează offline") }
+                    if (busy && loadingModel == null) LinearProgressIndicator(Modifier.fillMaxWidth())
+                }
+            }
+        }
     }
     confirmDelete?.let { filename ->
         AlertDialog(
