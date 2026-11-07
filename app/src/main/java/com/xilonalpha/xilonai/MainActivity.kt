@@ -345,6 +345,24 @@ private fun InstalledModelsScreen() {
     var htmlExportStatus by remember { mutableStateOf("") }
     var pendingHtml by remember { mutableStateOf<String?>(null) }
     var previewHtml by remember { mutableStateOf<String?>(null) }
+    previewHtml?.let { html ->
+        AlertDialog(
+            onDismissRequest = { previewHtml = null },
+            title = { Text("Previzualizare HTML locală") },
+            text = {
+                Column {
+                    Text("JavaScript rulează izolat în WebView. Rețeaua și accesul la fișiere sunt blocate; bibliotecile Three.js de pe CDN nu se vor încărca.")
+                    Spacer(Modifier.height(8.dp))
+                    Box(Modifier.fillMaxWidth().height(360.dp)) {
+                        XilonHtmlPreview(html)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { previewHtml = null }) { Text("Închide") }
+            }
+        )
+    }
     val htmlSaver = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/html")
     ) { uri ->
