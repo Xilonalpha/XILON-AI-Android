@@ -426,6 +426,16 @@ private fun InstalledModelsScreen() {
     var loadingModel by remember { mutableStateOf<String?>(null) }
     var loadDurationMs by remember { mutableStateOf<Long?>(null) }
     var generationDurationMs by remember { mutableStateOf<Long?>(null) }
+    var generationStartedAt by remember { mutableLongStateOf(0L) }
+    var generationElapsedMs by remember { mutableLongStateOf(0L) }
+    var generatedCharacters by remember { mutableIntStateOf(0) }
+    var rawCharacters by remember { mutableIntStateOf(0) }
+    LaunchedEffect(busy, generationStartedAt) {
+        while (busy && generationStartedAt > 0L) {
+            generationElapsedMs = android.os.SystemClock.elapsedRealtime() - generationStartedAt
+            kotlinx.coroutines.delay(500L)
+        }
+    }
     var outputTokenCount by remember { mutableStateOf<Int?>(null) }
     var nativeTimings by remember { mutableStateOf<LongArray?>(null) }
     var loadMemoryDeltaMiB by remember { mutableStateOf<Double?>(null) }
@@ -821,6 +831,10 @@ private fun InstalledModelsScreen() {
         }
         Button(enabled = !busy && prompt.isNotBlank(), onClick = {
             stopRequested.set(false)
+            generationStartedAt = android.os.SystemClock.elapsedRealtime()
+            generationElapsedMs = 0L
+            generatedCharacters = 0
+            rawCharacters = 0
             busy = true
             response = ""
             val submitted = prompt
@@ -862,7 +876,9 @@ private fun InstalledModelsScreen() {
                 else runCatching {
                     LocalLlama.generateStreaming(conversation, outputLimit) { partial ->
                         (context as ComponentActivity).runOnUiThread {
+                            rawCharacters = partial.length
                             response = XilonResponseBoundary.clean(partial)
+                            generatedCharacters = response.length
                         }
                     }
                 }
@@ -901,6 +917,24 @@ private fun InstalledModelsScreen() {
             }
         }) { Text("Trimite  ↑") }
         if (busy && loadingModel == null) {
+            val seconds = generationElapsedMs / 1000L
+            val phase = when {
+                generatedCharacters > 0 -> "Răspuns în curs"
+                rawCharacters > 0 -> "Modelul generează; răspunsul vizibil nu a început încă"
+                else -> "Pregătire și procesare prompt"
+            }
+            Text("$phase · ${seconds / 60}m ${seconds % 60}s",
+                style = MaterialTheme.typography.labelMedium)
+            if (rawCharacters > 0) {
+                Text("Text brut: $rawCharacters caractere · Răspuns vizibil: $generatedCharacters caractere",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (seconds >= 60 && generatedCharacters == 0) {
+                Text("Generarea durează mult fără răspuns vizibil. Poți opri și încerca un răspuns mai scurt.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             OutlinedButton(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = { stopRequested.set(true); LocalLlama.requestStop() }
