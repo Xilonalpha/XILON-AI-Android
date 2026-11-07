@@ -12,12 +12,16 @@ import android.provider.Settings
  * shell commands, arbitrary URLs or silent external side effects.
  */
 object XilonActions {
-    enum class Kind { SETTINGS, MUSIC, WEB_SEARCH, PLAY_PAUSE, NEXT_TRACK, PREVIOUS_TRACK, VOLUME_UP, VOLUME_DOWN, SET_VOLUME, SHARE_MESSAGE }
+    enum class Kind { SETTINGS, MUSIC, WEB_SEARCH, PLAY_PAUSE, NEXT_TRACK, PREVIOUS_TRACK, VOLUME_UP, VOLUME_DOWN, SET_VOLUME, SHARE_MESSAGE, YOUTUBE_SEARCH }
     data class Proposal(val kind: Kind, val label: String, val explanation: String)
 
     fun propose(text: String): Proposal? {
         val q = text.trim().lowercase(java.util.Locale.ROOT)
         return when {
+            listOf("caută pe youtube:", "cauta pe youtube:", "youtube search:")
+                .any(q::startsWith) ->
+                Proposal(Kind.YOUTUBE_SEARCH, "Caută pe YouTube",
+                    "Deschide rezultatele căutării în YouTube sau browser; nu pornește automat redarea.")
             listOf("trimite pe whatsapp:", "trimite prin whatsapp:",
                 "share on whatsapp:", "mesaj whatsapp:")
                 .any(q::startsWith) ->
@@ -88,6 +92,12 @@ object XilonActions {
               catch (_: IllegalStateException) { false }
         }
         val intent = when (proposal.kind) {
+            Kind.YOUTUBE_SEARCH -> {
+                val query = originalMessage.substringAfter(':', "").trim()
+                if (query.isBlank()) return false
+                Intent(Intent.ACTION_VIEW, Uri.parse("https://www.youtube.com/results?search_query=" +
+                    java.net.URLEncoder.encode(query, "UTF-8")))
+            }
             Kind.SHARE_MESSAGE -> {
                 val message = originalMessage.substringAfter(':', "").trim()
                 if (message.isBlank()) return false
