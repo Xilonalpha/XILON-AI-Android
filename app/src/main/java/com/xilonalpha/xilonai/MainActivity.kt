@@ -340,7 +340,7 @@ private fun InstalledModelsScreen() {
     var activeModel by remember { mutableStateOf("") }
     var chatHistory by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
     var prompt by remember { mutableStateOf("") }
-    var maxResponseTokens by remember { mutableIntStateOf(1024) }
+    var maxResponseTokens by remember { mutableIntStateOf(512) }
     var response by remember { mutableStateOf("") }
     var htmlExportStatus by remember { mutableStateOf("") }
     var pendingHtml by remember { mutableStateOf<String?>(null) }
@@ -534,6 +534,9 @@ private fun InstalledModelsScreen() {
         chatHistory.takeLast(12).forEach { (question, answer) ->
             XilonChatBubble(question, isUser = true)
             XilonChatBubble(answer, isUser = false)
+        }
+        if (busy && prompt.isNotBlank()) {
+            XilonChatBubble(prompt, isUser = true)
         }
         if (response.isNotBlank() && (busy || chatHistory.lastOrNull()?.second != response)) {
             XilonChatBubble(response, isUser = false)
@@ -787,6 +790,11 @@ private fun InstalledModelsScreen() {
         if (response.isNotBlank() && !busy) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = {
+                    val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
+                        as android.content.ClipboardManager
+                    clipboard.setPrimaryClip(android.content.ClipData.newPlainText("XILON AI", response))
+                }) { Text("Copiază") }
                 OutlinedButton(onClick = { speech.speak(response) }) {
                     Text("Citește răspunsul offline")
                 }
