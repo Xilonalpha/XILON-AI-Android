@@ -11,7 +11,7 @@ import android.provider.Settings
  * listener in Android settings; never bypasses Android access controls.
  */
 object XilonMediaSessions {
-    enum class Command { TOGGLE, NEXT, PREVIOUS }
+    enum class Command { TOGGLE, PLAY, PAUSE, NEXT, PREVIOUS }
     enum class Outcome { VERIFIED, DISPATCHED, UNAVAILABLE, DENIED }
     data class Result(val outcome: Outcome, val description: String)
 
@@ -80,6 +80,8 @@ object XilonMediaSessions {
             when (command) {
                 Command.TOGGLE -> if (before == PlaybackState.STATE_PLAYING)
                     controls.pause() else controls.play()
+                Command.PLAY -> controls.play()
+                Command.PAUSE -> controls.pause()
                 Command.NEXT -> controls.skipToNext()
                 Command.PREVIOUS -> controls.skipToPrevious()
             }
@@ -91,7 +93,7 @@ object XilonMediaSessions {
         // Querying immediately can observe the old state; this is evidence only
         // if a different state is already visible, never proof of actual sound.
         val after = controller.playbackState?.state
-        if (command == Command.TOGGLE && after != null && before != after &&
+        if (command in setOf(Command.TOGGLE, Command.PLAY, Command.PAUSE) && after != null && before != after &&
             after in setOf(PlaybackState.STATE_PLAYING, PlaybackState.STATE_PAUSED)) {
             return Result(Outcome.VERIFIED,
                 "Starea sesiunii ${controller.packageName} s-a schimbat: ${if (after == PlaybackState.STATE_PLAYING) "redare" else "pauză"}.")
