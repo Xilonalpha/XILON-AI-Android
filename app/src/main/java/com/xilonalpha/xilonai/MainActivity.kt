@@ -352,6 +352,7 @@ private fun InstalledModelsScreen() {
                 Text("Estimare end-to-end, include procesarea promptului; nu este benchmark de decodare pură.", style = MaterialTheme.typography.bodySmall)
             }
         }
+        Text("Istoric privat, salvat local pentru fiecare model. Nu este sincronizat online.", style = MaterialTheme.typography.bodySmall)
         OutlinedTextField(value = prompt, onValueChange = { prompt = it }, label = { Text("Mesaj") }, modifier = Modifier.fillMaxWidth())
         Button(enabled = !busy && prompt.isNotBlank(), onClick = {
             busy = true
@@ -390,6 +391,12 @@ private fun InstalledModelsScreen() {
                 val tokenCount = result.getOrNull()?.let { runCatching { LocalLlama.countTokens(it) }.getOrNull() }
                 val timings = runCatching { LocalLlama.lastTimings() }.getOrNull()
                 val memoryAfter = InferenceProfiler.snapshot()
+                val nextHistory = if (result.isSuccess) historySnapshot.let {
+                    chatHistory + (submitted to result.getOrThrow())
+                } else emptyList()
+                val saved = if (result.isSuccess) runCatching {
+                    LocalConversationStore.save(context, activeModel, nextHistory)
+                } else null
                 (context as ComponentActivity).runOnUiThread {
                     generationDurationMs = elapsed
                     outputTokenCount = tokenCount
@@ -398,8 +405,9 @@ private fun InstalledModelsScreen() {
                     nativeHeapMiB = memoryAfter.nativeHeapKiB / 1024.0
                     response = result.getOrElse { "Eroare: ${it.message}" }
                     if (result.isSuccess) {
-                        chatHistory = chatHistory + (submitted to response)
+                        chatHistory = nextHistory
                         prompt = ""
+                        if (saved?.isFailure == true) response += "\\nAtenție: istoricul nu a putut fi salvat local."
                     }
                     busy = false
                 }
@@ -448,6 +456,7 @@ private fun InstalledModelsScreen() {
                             val memoryAfter = InferenceProfiler.snapshot()
                             val elapsed = android.os.SystemClock.elapsedRealtime() - startedAt
                             val loaded = attempt.getOrDefault(false)
+                            val storedHistory = if (loaded) runCatching { LocalConversationStore.load(context, model.name) }.getOrDefault(emptyList()) else emptyList()
                             (context as ComponentActivity).runOnUiThread {
                                 loadDurationMs = if (loaded) elapsed else null
                                 loadMemoryDeltaMiB = if (loaded) InferenceProfiler.deltaMiB(memoryBefore, memoryAfter) else null
@@ -457,7 +466,7 @@ private fun InstalledModelsScreen() {
                                 outputTokenCount = null
                                 nativeTimings = null
                                 activeModel = if (loaded) model.name else ""
-                                chatHistory = emptyList()
+                                chatHistory = storedHistory
                                 response = if (loaded) "Model încărcat. Poți trimite un mesaj." else "Încărcarea a eșuat: ${attempt.exceptionOrNull()?.message ?: "format incompatibil, model incomplet sau memorie insuficientă"}."
                                 busy = false
                                 loadingModel = null
