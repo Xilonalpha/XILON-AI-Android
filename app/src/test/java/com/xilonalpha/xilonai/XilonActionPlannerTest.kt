@@ -36,4 +36,18 @@ class XilonActionPlannerTest {
         assertEquals(XilonActions.Kind.YOUTUBE_SEARCH, plan?.steps?.first()?.proposal?.kind)
         assertEquals(XilonActions.Kind.SET_VOLUME, plan?.steps?.last()?.proposal?.kind)
     }
+    @Test fun reportSeparatesDispatchFromCompletion() {
+        val report = XilonActionPlanner.ExecutionReport(
+            attempted = 2, dispatched = 1, total = 3, failedStep = 2)
+        assertFalse(report.allDispatched)
+        assertEquals(2, report.failedStep)
+        assertEquals(1, report.dispatched)
+    }
+
+    @Test fun voiceTranscriptCanBecomeActionPlan() {
+        val plan = XilonActionPlanner.plan("caută pe youtube: muzică relaxantă; volum la 30%")
+        assertNotNull(plan)
+        assertTrue(plan!!.requiresConfirmation)
+        assertEquals(2, plan.steps.size)
+    }
 }
