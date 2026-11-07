@@ -398,6 +398,7 @@ private fun InstalledModelsScreen() {
     }
     val actionPlan = remember(prompt) { XilonActionPlanner.plan(prompt) }
     var actionFeedback by remember { mutableStateOf("") }
+    LaunchedEffect(prompt) { actionFeedback = "" }
     val taskDecision = remember(prompt) { XilonCore.classify(prompt) }
     val suggestedModel = remember(revision, prompt) {
         XilonCore.suggestModel(taskDecision.task, InstalledModels.list(context).map { it.name })
@@ -592,6 +593,8 @@ private fun InstalledModelsScreen() {
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
         if (actionPlan != null) {
+            Text("Comandă recunoscută local. Verifică pașii înainte de confirmare.",
+                style = MaterialTheme.typography.labelSmall)
             Surface(color = MaterialTheme.colorScheme.secondaryContainer,
                 shape = RoundedCornerShape(14.dp)) {
                 Column(Modifier.fillMaxWidth().padding(12.dp),
