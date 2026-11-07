@@ -386,17 +386,13 @@ private fun InstalledModelsScreen() {
             title = { Text("Previzualizare HTML locală") },
             text = {
                 Column {
-                    Text("Ține apăsat pe scena Three.js pentru export GLB al geometriei (fără materiale/texturi). Previzualizare locală WebGL/HTML. Accesul la rețea și fișiere este blocat. Three.js clasic este inclus local; alte biblioteci și module externe nu se încarcă.")
+                    Text("Ține apăsat pe scena Three.js pentru export GLB cu materiale și texturi acceptate de GLTFExporter. Previzualizare locală WebGL/HTML. Accesul la rețea și fișiere este blocat. Three.js clasic este inclus local; alte biblioteci și module externe nu se încarcă.")
                     Spacer(Modifier.height(8.dp))
                     Box(Modifier.fillMaxWidth().height(360.dp)) {
-                        XilonHtmlPreview(html, onSceneObj = { obj, error ->
-                            if (obj != null) {
-                                runCatching { XilonGlbExport.fromObj(obj) }
-                                    .onSuccess { bytes ->
-                                        pendingGlb = bytes
-                                        glbSaver.launch("xilon-scena-three.glb")
-                                    }
-                                    .onFailure { glbExportStatus = "Export scenă eșuat: ${it.message}" }
+                        XilonHtmlPreview(html, onSceneGlb = { bytes, error ->
+                            if (bytes != null) {
+                                pendingGlb = bytes
+                                glbSaver.launch("xilon-scena-three.glb")
                             } else {
                                 glbExportStatus = error ?: "Scena nu poate fi exportată."
                             }
