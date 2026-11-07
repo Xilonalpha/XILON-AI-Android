@@ -32,6 +32,7 @@ object GgufDownloader {
         val safeName = (modelId + "__" + filename).replace(Regex("[^A-Za-z0-9_.-]"), "_")
         val target = File(root, safeName)
         val partial = File(root, "$safeName.part")
+        if (target.exists() && target.length() != expectedBytes) check(target.delete()) { "Unable to remove invalid existing file" }
         if (target.exists() && target.length() == expectedBytes) {
             val hash = sha256(target)
             if (expectedSha256 == null || hash.equals(expectedSha256, true)) return Result(target, hash)
