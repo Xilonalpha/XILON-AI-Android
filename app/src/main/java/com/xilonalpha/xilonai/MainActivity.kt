@@ -760,33 +760,6 @@ private fun InstalledModelsScreen() {
         }
         if (mediaStatus.isNotBlank()) Text(mediaStatus,
             style = MaterialTheme.typography.labelSmall)
-        if (actionPlan != null) {
-            Text("Comandă recunoscută local. Verifică pașii înainte de confirmare.",
-                style = MaterialTheme.typography.labelSmall)
-            Surface(color = MaterialTheme.colorScheme.secondaryContainer,
-                shape = RoundedCornerShape(14.dp)) {
-                Column(Modifier.fillMaxWidth().padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Plan XILON Actions — ${actionPlan.steps.size} pași",
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer)
-                    actionPlan.steps.forEachIndexed { index, step ->
-                        Text("${index + 1}. ${step.proposal.label}",
-                            color = MaterialTheme.colorScheme.onSecondaryContainer)
-                    }
-                    Text("Fiecare pas folosește permisiunile Android. Lansarea nu garantează rezultatul în aplicația externă.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer)
-                    Button(enabled = !busy, onClick = {
-                        val report = XilonActionPlanner.executeWithReport(context, actionPlan)
-                        val summary = if (report.allDispatched)
-                            "Trimise: ${report.dispatched}/${report.total}; verificate: ${report.verified}. "
-                        else "Plan oprit la pasul ${report.failedStep}; trimise: ${report.dispatched}/${report.total}; verificate: ${report.verified}. "
-                        actionFeedback = summary + report.details.joinToString("\n")
-                    }) { Text("Confirmă și execută planul") }
-                }
-            }
-        }
         if (response.isNotBlank() && !busy) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically) {
@@ -874,7 +847,7 @@ private fun InstalledModelsScreen() {
                         val summary = if (report.allDispatched)
                             "Trimise: ${report.dispatched}/${report.total}; verificate: ${report.verified}. "
                         else "Oprit la pasul ${report.failedStep}; trimise: ${report.dispatched}/${report.total}. "
-                        actionFeedback = summary + report.details.joinToString("\\n")
+                        actionFeedback = summary + report.details.joinToString("\n")
                     }) { Text("Confirmă acțiunea Android") }
                     if (actionFeedback.isNotBlank()) {
                         Text(actionFeedback, style = MaterialTheme.typography.bodySmall)
