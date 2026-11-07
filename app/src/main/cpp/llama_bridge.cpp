@@ -2,6 +2,7 @@
 #include <android/log.h>
 #include <llama.h>
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <mutex>
 #include <string>
@@ -9,6 +10,7 @@
 
 namespace {
 std::mutex guard;
+std::atomic<bool> stop_requested{false};
 llama_model* model = nullptr;
 llama_context* context = nullptr;
 bool backend_ready = false;
@@ -114,6 +116,7 @@ Java_com_xilonalpha_xilonai_LocalLlama_unload(JNIEnv*, jobject) {
 
 static jstring generate_impl(JNIEnv* env, jstring prompt, jint max_tokens, jobject callback) {
     std::lock_guard<std::mutex> lock(guard);
+    stop_requested.store(false);
     last_prompt_ms = last_decode_ms = -1;
     last_generated_tokens = 0;
     if (!model || !context) return fail(env, "Model not loaded");
@@ -140,6 +143,7 @@ static jstring generate_impl(JNIEnv* env, jstring prompt, jint max_tokens, jobje
     const auto prompt_start = Clock::now();
     const int chunk = 512;
     for (int i = 0; i < effective_count; i += chunk) {
+        if (stop_requested.load()) return fail(env, "Generation cancelled");
         const int n = std::min(chunk, effective_count - i);
         if (llama_decode(context, llama_batch_get_one(tokens.data() + i, n)) != 0)
             return fail(env, "Prompt evaluation failed");
@@ -168,6 +172,7 @@ static jstring generate_impl(JNIEnv* env, jstring prompt, jint max_tokens, jobje
     bool decode_failed = false;
     bool piece_failed = false;
     for (int i = 0; i < limit; ++i) {
+        if (stop_requested.load()) break;
         const llama_token token = llama_sampler_sample(sampler, context, -1);
         if (llama_vocab_is_eog(vocab, token)) break;
         ++last_generated_tokens;
@@ -207,7 +212,13 @@ static jstring generate_impl(JNIEnv* env, jstring prompt, jint max_tokens, jobje
     __android_log_print(ANDROID_LOG_INFO, "XilonInference", "decode_ms=%lld generated_tokens=%d", last_decode_ms, last_generated_tokens);
     if (decode_failed) return fail(env, "Token decoding failed");
     if (piece_failed) return fail(env, "Token text conversion failed");
-    return env->NewStringUTF(output.c_str());
+    return unicode(env, output);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_xilonalpha_xilonai_LocalLlama_requestStop(JNIEnv*, jobject) {
+    // Intentionally lock-free: generation holds the model mutex.
+    stop_requested.store(true);
 }
 
 extern "C" JNIEXPORT jstring JNICALL
