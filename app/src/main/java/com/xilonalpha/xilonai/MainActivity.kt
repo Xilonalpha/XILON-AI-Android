@@ -370,6 +370,8 @@ private fun InstalledModelsScreen() {
     LaunchedEffect(chatHistory.size, response.length, activeModel) {
         if (activeModel.isNotBlank()) chatScrollState.scrollTo(chatScrollState.maxValue)
     }
+    val actionProposal = remember(prompt) { XilonActions.propose(prompt) }
+    var actionFeedback by remember { mutableStateOf("") }
     val taskDecision = remember(prompt) { XilonCore.classify(prompt) }
     val suggestedModel = remember(revision, prompt) {
         XilonCore.suggestModel(taskDecision.task, InstalledModels.list(context).map { it.name })
@@ -563,6 +565,25 @@ private fun InstalledModelsScreen() {
                     Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
+        if (actionProposal != null) {
+            Surface(color = MaterialTheme.colorScheme.secondaryContainer,
+                shape = RoundedCornerShape(14.dp)) {
+                Column(Modifier.fillMaxWidth().padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(actionProposal.label, style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer)
+                    Text(actionProposal.explanation,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer)
+                    Button(enabled = !busy, onClick = {
+                        val launched = XilonActions.execute(context, actionProposal, prompt)
+                        actionFeedback = if (launched) "Acțiunea a fost trimisă către Android."
+                            else "Nu există o aplicație compatibilă sau acțiunea nu poate fi lansată."
+                    }) { Text("Confirmă acțiunea") }
+                }
+            }
+        }
+        if (actionFeedback.isNotBlank()) Text(actionFeedback,
+            style = MaterialTheme.typography.bodySmall)
         if (prompt.isNotBlank()) {
             Text("XILON Core: ${taskDecision.explanation}", style = MaterialTheme.typography.labelSmall)
             if (suggestedModel != null && suggestedModel != activeModel) {
