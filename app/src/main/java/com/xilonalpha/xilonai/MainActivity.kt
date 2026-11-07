@@ -351,7 +351,7 @@ private fun InstalledModelsScreen() {
             title = { Text("Previzualizare HTML locală") },
             text = {
                 Column {
-                    Text("JavaScript rulează izolat în WebView. Rețeaua și accesul la fișiere sunt blocate; bibliotecile Three.js de pe CDN nu se vor încărca.")
+                    Text("Previzualizare locală WebGL/HTML. Accesul la rețea și fișiere este blocat. Scenele care necesită biblioteci externe nu se pot încărca.")
                     Spacer(Modifier.height(8.dp))
                     Box(Modifier.fillMaxWidth().height(360.dp)) {
                         XilonHtmlPreview(html)
