@@ -335,7 +335,17 @@ private fun InstalledModelsScreen() {
             importBusy = true
             importMessage = "Se copiază modelul în spațiul privat al aplicației…"
             thread(name = "gguf-local-import") {
-                val result = runCatching { LocalModelImporter.import(context, uri) }
+                val result = runCatching {
+                    LocalModelImporter.import(context, uri) { copied, total ->
+                        (context as ComponentActivity).runOnUiThread {
+                            importMessage = if (total != null && total > 0) {
+                                "Import GGUF: ${(copied * 100 / total).coerceIn(0, 100)}% (${copied / 1048576} MiB)"
+                            } else {
+                                "Import GGUF: ${copied / 1048576} MiB copiați"
+                            }
+                        }
+                    }
+                }
                 (context as ComponentActivity).runOnUiThread {
                     importBusy = false
                     importMessage = result.fold(
