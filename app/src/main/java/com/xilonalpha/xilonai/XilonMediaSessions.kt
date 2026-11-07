@@ -88,6 +88,14 @@ object XilonMediaSessions {
         } catch (_: IllegalStateException) {
             return Result(Outcome.UNAVAILABLE, "Sesiunea media nu mai este activă.")
         }
+        // Querying immediately can observe the old state; this is evidence only
+        // if a different state is already visible, never proof of actual sound.
+        val after = controller.playbackState?.state
+        if (command == Command.TOGGLE && after != null && before != after &&
+            after in setOf(PlaybackState.STATE_PLAYING, PlaybackState.STATE_PAUSED)) {
+            return Result(Outcome.VERIFIED,
+                "Starea sesiunii ${controller.packageName} s-a schimbat: ${if (after == PlaybackState.STATE_PLAYING) "redare" else "pauză"}.")
+        }
         // MediaSession state changes are asynchronous. Do not claim playback
         // succeeded merely because a transport control returned.
         return Result(Outcome.DISPATCHED,
