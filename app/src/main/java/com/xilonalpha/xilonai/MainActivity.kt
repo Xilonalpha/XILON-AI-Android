@@ -67,6 +67,9 @@ private fun ModelExplorer() {
     var candidates by remember { mutableStateOf<List<GgufCandidate>>(emptyList()) }
     var candidateError by remember { mutableStateOf<String?>(null) }
     var inspecting by remember { mutableStateOf(false) }
+    var downloadStatus by remember { mutableStateOf("") }
+    var downloadProgress by remember { mutableFloatStateOf(0f) }
+    var downloading by remember { mutableStateOf(false) }
     val context = LocalContext.current
     fun refresh() {
         if (loading) return
@@ -142,11 +145,39 @@ private fun ModelExplorer() {
                         if (inspecting) CircularProgressIndicator()
                         candidateError?.let { Text("Eroare: $it") }
                         if (!inspecting && candidates.isEmpty() && candidateError == null) Text("Niciun fișier GGUF identificat.")
+                        if (downloading) LinearProgressIndicator(progress = { downloadProgress }, modifier = Modifier.fillMaxWidth())
+                        if (downloadStatus.isNotBlank()) Text(downloadStatus, style = MaterialTheme.typography.bodySmall)
                         candidates.take(12).forEach { file ->
                             HorizontalDivider()
                             Text(file.filename)
                             Text("Dimensiune: ${file.sizeBytes / (1024L * 1024L)} MiB; RAM estimat: ${file.estimatedRequiredRamBytes / (1024L * 1024L)} MiB")
                             Text("${file.status}: ${file.reason}", style = MaterialTheme.typography.bodySmall)
+                            if (file.status == CompatibilityStatus.ESTIMATED && file.sizeBytes > 0) {
+                                Button(enabled = !downloading, onClick = {
+                                    downloading = true
+                                    downloadStatus = "Pornire descărcare..."
+                                    downloadProgress = 0f
+                                    thread(name = "gguf-download") {
+                                        try {
+                                            val result = GgufDownloader.download(context, model.id, file.filename, file.sizeBytes, onProgress = { current, total ->
+                                                (context as ComponentActivity).runOnUiThread {
+                                                    downloadProgress = current.toFloat() / total.toFloat()
+                                                    downloadStatus = "$current / $total bytes"
+                                                }
+                                            })
+                                            (context as ComponentActivity).runOnUiThread {
+                                                downloadStatus = "Salvat: ${result.file.name} (SHA-256: ${result.sha256.take(12)}...)"
+                                                downloading = false
+                                            }
+                                        } catch (e: Exception) {
+                                            (context as ComponentActivity).runOnUiThread {
+                                                downloadStatus = "Eroare: ${e.message}"
+                                                downloading = false
+                                            }
+                                        }
+                                    }
+                                }) { Text("Descarcă GGUF") }
+                            }
                         }
                     }
                 }
