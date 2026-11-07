@@ -169,6 +169,7 @@ static jstring generate_impl(JNIEnv* env, jstring prompt, jint max_tokens, jobje
         }
     }
     std::string output;
+    auto last_stream_update = Clock::now() - std::chrono::milliseconds(200);
     bool decode_failed = false;
     bool piece_failed = false;
     for (int i = 0; i < limit; ++i) {
@@ -188,8 +189,11 @@ static jstring generate_impl(JNIEnv* env, jstring prompt, jint max_tokens, jobje
             output.append(piece, static_cast<size_t>(n));
         }
         if (piece_failed) break;
-        // Update after each completed token. A callback exception aborts generation.
-        if (callback && !output.empty()) {
+        // JNI UTF-16 conversion and callback allocation are expensive on mobile.
+        // Stream at most ~5 updates/sec, without changing the token decoding rate.
+        if (callback && !output.empty() &&
+            Clock::now() - last_stream_update >= std::chrono::milliseconds(200)) {
+            last_stream_update = Clock::now();
             jstring partial = unicode(env, output);
             if (!partial) break;
             jobject result = env->CallObjectMethod(callback, callbackMethod, partial);
