@@ -63,6 +63,10 @@ private fun ModelExplorer() {
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
     var newest by remember { mutableStateOf(true) }
+    var selectedModel by remember { mutableStateOf<String?>(null) }
+    var candidates by remember { mutableStateOf<List<GgufCandidate>>(emptyList()) }
+    var candidateError by remember { mutableStateOf<String?>(null) }
+    var inspecting by remember { mutableStateOf(false) }
     val context = LocalContext.current
     fun refresh() {
         if (loading) return
@@ -116,6 +120,35 @@ private fun ModelExplorer() {
                     Text("Descărcări: ${model.downloads} · Aprecieri: ${model.likes}")
                     Text("Actualizat: ${model.updated.take(10)}")
                     Text("Compatibilitate: neverificată", style = MaterialTheme.typography.bodySmall)
+                    TextButton(onClick = {
+                        selectedModel = model.id
+                        candidates = emptyList()
+                        candidateError = null
+                        inspecting = true
+                        thread(name = "gguf-inspection") {
+                            try {
+                                val result = ModelCompatibility.candidates(context, model.id)
+                                (context as ComponentActivity).runOnUiThread {
+                                    if (selectedModel == model.id) { candidates = result; inspecting = false }
+                                }
+                            } catch (e: Exception) {
+                                (context as ComponentActivity).runOnUiThread {
+                                    if (selectedModel == model.id) { candidateError = e.message; inspecting = false }
+                                }
+                            }
+                        }
+                    }) { Text("Verifică fișierele GGUF") }
+                    if (selectedModel == model.id) {
+                        if (inspecting) CircularProgressIndicator()
+                        candidateError?.let { Text("Eroare: $it") }
+                        if (!inspecting && candidates.isEmpty() && candidateError == null) Text("Niciun fișier GGUF identificat.")
+                        candidates.take(12).forEach { file ->
+                            HorizontalDivider()
+                            Text(file.filename)
+                            Text("Dimensiune: ${file.sizeBytes / (1024L * 1024L)} MiB; RAM estimat: ${file.estimatedRequiredRamBytes / (1024L * 1024L)} MiB")
+                            Text("${file.status}: ${file.reason}", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
                 }
             }
         }
