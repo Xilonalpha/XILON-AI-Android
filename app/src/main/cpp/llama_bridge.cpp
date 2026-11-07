@@ -59,6 +59,8 @@ Java_com_xilonalpha_xilonai_LocalLlama_load(JNIEnv* env, jobject, jstring path, 
     cp.n_ctx = static_cast<uint32_t>(std::max(512, std::min(4096, static_cast<int>(context_size))));
     cp.n_batch = 512;
     cp.n_threads = 4;
+    cp.n_threads_batch = 4;
+    __android_log_print(ANDROID_LOG_INFO, "XilonInference", "load_context=%u cpu_threads=%d batch_threads=%d", cp.n_ctx, cp.n_threads, cp.n_threads_batch);
     context = llama_init_from_model(model, cp);
     if (!context) { unload(); return JNI_FALSE; }
     return JNI_TRUE;
