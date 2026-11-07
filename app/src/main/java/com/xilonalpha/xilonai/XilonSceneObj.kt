@@ -21,6 +21,10 @@ object XilonSceneObj {
    if(!pos || pos.count<3) return;
    const v=new THREE.Vector3();
    lines.push('o '+String(mesh.name||'Mesh').replace(/[^a-zA-Z0-9_-]/g,'_'));
+   if(mesh.material && mesh.material.color) {
+    const c=mesh.material.color;
+    lines.push('# xilon_base_color '+c.r+' '+c.g+' '+c.b);
+   }
    for(let i=0;i<pos.count;i++){
     v.fromBufferAttribute(pos,i).applyMatrix4(mesh.matrixWorld);
     lines.push('v '+v.x+' '+v.y+' '+v.z);
