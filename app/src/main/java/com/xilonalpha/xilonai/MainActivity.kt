@@ -346,6 +346,11 @@ private fun InstalledModelsScreen() {
     OutlinedButton(onClick = { revision++ }) { Icon(Icons.Filled.Refresh, null); Spacer(Modifier.width(8.dp)); Text("Reîmprospătează") }
     if (activeModel.isNotBlank()) {
         Text("Model activ: " + activeModel.take(44) + if (activeModel.length > 44) "…" else "")
+        var showDiagnostics by remember { mutableStateOf(false) }
+        TextButton(onClick = { showDiagnostics = !showDiagnostics }) {
+            Text(if (showDiagnostics) "Ascunde statisticile tehnice" else "Arată statisticile tehnice")
+        }
+        if (showDiagnostics) {
         loadDurationMs?.let { Text("Timp de încărcare: $it ms") }
         loadMemoryDeltaMiB?.let { Text("Variație memorie PSS la încărcare: %.1f MiB".format(java.util.Locale.ROOT, it)) }
         currentPssMiB?.let { Text("Memorie proces PSS: %.1f MiB".format(java.util.Locale.ROOT, it)) }
@@ -366,6 +371,7 @@ private fun InstalledModelsScreen() {
                 Text("Viteză aproximativă: %.1f tokenuri/s · %d tokenuri".format(java.util.Locale.ROOT, throughput, tokens))
                 Text("Estimare end-to-end, include procesarea promptului; nu este benchmark de decodare pură.", style = MaterialTheme.typography.bodySmall)
             }
+        }
         }
         Text("Istoric privat și recuperare locală a mesajelor relevante, fără sincronizare online.", style = MaterialTheme.typography.bodySmall)
         OutlinedButton(enabled = !busy, onClick = {
