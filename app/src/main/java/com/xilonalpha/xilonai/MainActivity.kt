@@ -315,6 +315,7 @@ private fun InstalledModelsScreen() {
     var activeModel by remember { mutableStateOf("") }
     var chatHistory by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
     var prompt by remember { mutableStateOf("") }
+    var maxResponseTokens by remember { mutableIntStateOf(16) }
     var response by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var loadingModel by remember { mutableStateOf<String?>(null) }
@@ -390,6 +391,17 @@ private fun InstalledModelsScreen() {
                 }
             }
         }) { Text("Șterge istoricul conversației") }
+        Text("Lungimea răspunsului (telefonul a măsurat ~1,1 tokenuri/s)", style = MaterialTheme.typography.bodySmall)
+        androidx.compose.material3.SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            listOf(16, 32, 64).forEachIndexed { index, count ->
+                androidx.compose.material3.SegmentedButton(
+                    selected = maxResponseTokens == count,
+                    onClick = { maxResponseTokens = count },
+                    enabled = !busy,
+                    shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(index, 3)
+                ) { Text("$count") }
+            }
+        }
         OutlinedTextField(value = prompt, onValueChange = { prompt = it }, label = { Text("Mesaj") }, modifier = Modifier.fillMaxWidth())
         Button(enabled = !busy && prompt.isNotBlank(), onClick = {
             busy = true
@@ -399,12 +411,13 @@ private fun InstalledModelsScreen() {
             val recalledHistory = LocalMemoryRecall.recall(completeHistorySnapshot, submitted)
             val historySnapshot = recalledHistory + recentHistory
             val modelSnapshot = activeModel
+            val outputLimit = maxResponseTokens
             thread(name = "local-inference") {
                 try {
                 val startedAt = android.os.SystemClock.elapsedRealtime()
                 val conversation = ConversationBudget.fit(
                     history = historySnapshot,
-                    tokenBudget = 2048 - 32,
+                    tokenBudget = 2048 - outputLimit,
                     render = { turns ->
                         val roles = mutableListOf("system")
                         val contents = mutableListOf("You are a helpful assistant.")
@@ -428,7 +441,7 @@ private fun InstalledModelsScreen() {
                 )
                 val result = if (conversation == null)
                     Result.failure<String>(IllegalArgumentException("Mesajul depășește contextul disponibil."))
-                else runCatching { LocalLlama.generate(conversation, 32) }
+                else runCatching { LocalLlama.generate(conversation, outputLimit) }
                 val elapsed = android.os.SystemClock.elapsedRealtime() - startedAt
                 val tokenCount = result.getOrNull()?.let { runCatching { LocalLlama.countTokens(it) }.getOrNull() }
                 val timings = runCatching { LocalLlama.lastTimings() }.getOrNull()
