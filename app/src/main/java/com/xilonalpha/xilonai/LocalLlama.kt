@@ -13,6 +13,8 @@ object LocalLlama {
     external fun countTokens(text: String): Int
     /** [prompt evaluation ms, decode ms, generated tokens] from the last native call. */
     external fun lastTimings(): LongArray
+    /** Returns null if the loaded GGUF lacks a usable native chat template. */
+    external fun formatChat(roles: Array<String>, contents: Array<String>): String?
 
     fun loadModel(file: File, contextSize: Int = 2048): Boolean {
         require(file.isFile && file.extension.equals("gguf", true))
