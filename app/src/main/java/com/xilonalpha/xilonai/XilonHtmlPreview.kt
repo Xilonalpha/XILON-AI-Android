@@ -23,6 +23,7 @@ fun XilonHtmlPreview(html: String) {
         factory = { context ->
             WebView(context).apply {
                 settings.javaScriptEnabled = true
+                settings.blockNetworkLoads = true
                 settings.allowFileAccess = false
                 settings.allowContentAccess = false
                 settings.domStorageEnabled = false
@@ -35,13 +36,21 @@ fun XilonHtmlPreview(html: String) {
 
                     override fun shouldInterceptRequest(
                         view: WebView?, request: WebResourceRequest?
-                    ): WebResourceResponse = WebResourceResponse(
-                        "text/plain", "UTF-8", ByteArrayInputStream(ByteArray(0))
-                    )
+                    ): WebResourceResponse {
+                        if (request?.url?.toString() == "https://xilon-preview.invalid/three.min.js") {
+                            return WebResourceResponse(
+                                "application/javascript", "UTF-8",
+                                context.assets.open("three/three.min.js")
+                            )
+                        }
+                        return WebResourceResponse(
+                            "text/plain", "UTF-8", ByteArrayInputStream(ByteArray(0))
+                        )
+                    }
                 }
                 loadDataWithBaseURL(
                     "https://xilon-preview.invalid/",
-                    html,
+                    XilonThreeOffline.prepare(html),
                     "text/html",
                     "UTF-8",
                     null
@@ -52,7 +61,7 @@ fun XilonHtmlPreview(html: String) {
             if (view.tag != html) {
                 view.tag = html
                 view.loadDataWithBaseURL(
-                    "https://xilon-preview.invalid/", html, "text/html", "UTF-8", null
+                    "https://xilon-preview.invalid/", XilonThreeOffline.prepare(html), "text/html", "UTF-8", null
                 )
             }
         },
