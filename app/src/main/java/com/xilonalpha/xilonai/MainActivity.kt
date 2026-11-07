@@ -365,10 +365,14 @@ private fun InstalledModelsScreen() {
             }
         }
     }
+    val chatScrollState = rememberScrollState()
+    LaunchedEffect(chatHistory.size, response.length, activeModel) {
+        if (activeModel.isNotBlank()) chatScrollState.scrollTo(chatScrollState.maxValue)
+    }
     val models = remember(revision) { InstalledModels.list(context) }
     Column(Modifier.fillMaxSize().imePadding()) {
         Column(
-            Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())
+            Modifier.weight(1f).fillMaxWidth().verticalScroll(chatScrollState)
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
@@ -554,7 +558,7 @@ private fun InstalledModelsScreen() {
                     Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-        OutlinedTextField(value = prompt, onValueChange = { prompt = it }, label = { Text("Mesaj") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(value = prompt, onValueChange = { prompt = it }, label = { Text("Mesaj pentru XILON AI") }, modifier = Modifier.fillMaxWidth(), maxLines = 4)
         Button(enabled = !busy && prompt.isNotBlank(), onClick = {
             busy = true
             response = ""
