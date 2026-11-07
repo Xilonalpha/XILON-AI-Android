@@ -797,8 +797,11 @@ private fun InstalledModelsScreen() {
             shape = RoundedCornerShape(28.dp),
             maxLines = 5
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             OutlinedButton(enabled = !busy, onClick = {
                 if (!voice.available()) {
                     voiceStatus = "Acest Android nu oferă recunoaștere vocală complet locală."
@@ -808,10 +811,13 @@ private fun InstalledModelsScreen() {
                         voice.listen(onText = { prompt = it }, onStatus = { voiceStatus = it })
                     }.onFailure { voiceStatus = "Eroare voce: ${it.message}" }
                 } else microphonePermission.launch(Manifest.permission.RECORD_AUDIO)
-            }) { Text("Dictează offline") }
-            if (voiceStatus.isNotBlank()) Text(voiceStatus,
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.weight(1f))
+            }) { Text("🎙 Voce") }
+            if (voiceStatus.isNotBlank()) {
+                Text(voiceStatus, style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.weight(1f))
+            } else {
+                Spacer(Modifier.weight(1f))
+            }
         }
         Button(enabled = !busy && prompt.isNotBlank(), onClick = {
             stopRequested.set(false)
@@ -893,7 +899,7 @@ private fun InstalledModelsScreen() {
                     }
                 }
             }
-        }) { Text("Generează offline") }
+        }) { Text("Trimite  ↑") }
         if (busy && loadingModel == null) {
             OutlinedButton(
                 modifier = Modifier.fillMaxWidth(),
