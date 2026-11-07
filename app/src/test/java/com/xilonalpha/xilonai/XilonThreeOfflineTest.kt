@@ -7,8 +7,9 @@ import org.junit.Test
 class XilonThreeOfflineTest {
     @Test fun replacesClassicThreeCdnWithLocalAsset() {
         val html = "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/three.js/r150/three.min.js\"></script>"
-        assertEquals("<script src=\"https://xilon-preview.invalid/three.min.js\"></script>",
-            XilonThreeOffline.prepare(html))
+        val result = XilonThreeOffline.prepare(html)
+        assertTrue(result.contains("<script src=\"https://xilon-preview.invalid/three.min.js\"></script>"))
+        assertTrue(result.contains("https://xilon-preview.invalid/GLTFExporter.js"))
     }
 
     @Test fun doesNotRewriteArbitraryScripts() {
