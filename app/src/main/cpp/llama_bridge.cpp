@@ -1,6 +1,7 @@
 #include <jni.h>
 #include <llama.h>
 #include <algorithm>
+#include <chrono>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -10,6 +11,13 @@ std::mutex guard;
 llama_model* model = nullptr;
 llama_context* context = nullptr;
 bool backend_ready = false;
+long long last_prompt_ms = -1;
+long long last_decode_ms = -1;
+int last_generated_tokens = 0;
+using Clock = std::chrono::steady_clock;
+long long millis(Clock::time_point start) {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - start).count();
+}
 
 void unload() {
     if (context) { llama_free(context); context = nullptr; }
@@ -29,6 +37,8 @@ extern "C" JNIEXPORT jboolean JNICALL
 Java_com_xilonalpha_xilonai_LocalLlama_load(JNIEnv* env, jobject, jstring path, jint context_size) {
     std::lock_guard<std::mutex> lock(guard);
     unload();
+    last_prompt_ms = last_decode_ms = -1;
+    last_generated_tokens = 0;
     const auto filename = utf8(env, path);
     if (filename.empty()) return JNI_FALSE;
     if (!backend_ready) { llama_backend_init(); backend_ready = true; }
@@ -54,6 +64,8 @@ Java_com_xilonalpha_xilonai_LocalLlama_unload(JNIEnv*, jobject) {
 extern "C" JNIEXPORT jstring JNICALL
 Java_com_xilonalpha_xilonai_LocalLlama_generate(JNIEnv* env, jobject, jstring prompt, jint max_tokens) {
     std::lock_guard<std::mutex> lock(guard);
+    last_prompt_ms = last_decode_ms = -1;
+    last_generated_tokens = 0;
     if (!model || !context) return env->NewStringUTF("Model not loaded");
     const auto input = utf8(env, prompt);
     if (input.empty()) return env->NewStringUTF("");
@@ -68,18 +80,22 @@ Java_com_xilonalpha_xilonai_LocalLlama_generate(JNIEnv* env, jobject, jstring pr
     if (count <= 0 || count + limit > static_cast<int>(llama_n_ctx(context)))
         return env->NewStringUTF("Context limit exceeded");
     llama_memory_clear(llama_get_memory(context), true);
+    const auto prompt_start = Clock::now();
     const int chunk = 512;
     for (int i = 0; i < count; i += chunk) {
         const int n = std::min(chunk, count - i);
         if (llama_decode(context, llama_batch_get_one(tokens.data() + i, n)) != 0)
             return env->NewStringUTF("Prompt evaluation failed");
     }
+    last_prompt_ms = millis(prompt_start);
+    const auto decode_start = Clock::now();
     llama_sampler* sampler = llama_sampler_init_greedy();
     if (!sampler) return env->NewStringUTF("Sampler initialization failed");
     std::string output;
     for (int i = 0; i < limit; ++i) {
         const llama_token token = llama_sampler_sample(sampler, context, -1);
         if (llama_vocab_is_eog(vocab, token)) break;
+        ++last_generated_tokens;
         char piece[512];
         int n = llama_token_to_piece(vocab, token, piece, sizeof(piece), 0, true);
         if (n > 0) output.append(piece, n);
@@ -87,6 +103,7 @@ Java_com_xilonalpha_xilonai_LocalLlama_generate(JNIEnv* env, jobject, jstring pr
         if (llama_decode(context, llama_batch_get_one(&next, 1)) != 0) break;
     }
     llama_sampler_free(sampler);
+    last_decode_ms = millis(decode_start);
     return env->NewStringUTF(output.c_str());
 }
 
@@ -100,4 +117,13 @@ Java_com_xilonalpha_xilonai_LocalLlama_countTokens(JNIEnv* env, jobject, jstring
     const int required = llama_tokenize(vocab, input.c_str(), static_cast<int32_t>(input.size()),
                                         nullptr, 0, false, false);
     return required >= 0 ? required : -required;
+}
+
+extern "C" JNIEXPORT jlongArray JNICALL
+Java_com_xilonalpha_xilonai_LocalLlama_lastTimings(JNIEnv* env, jobject) {
+    std::lock_guard<std::mutex> lock(guard);
+    const jlong values[] = {last_prompt_ms, last_decode_ms, last_generated_tokens};
+    jlongArray result = env->NewLongArray(3);
+    if (result) env->SetLongArrayRegion(result, 0, 3, values);
+    return result;
 }
