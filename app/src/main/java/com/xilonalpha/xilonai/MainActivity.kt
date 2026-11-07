@@ -565,7 +565,8 @@ private fun InstalledModelsScreen() {
                             val startedAt = android.os.SystemClock.elapsedRealtime()
                             val attempt = runCatching { LocalLlama.loadModel(model) }
                             val memoryAfter = InferenceProfiler.snapshot()
-                            val elapsed = android.os.SystemClock.elapsedRealtime() - startedAt
+                            val cleanedResult = result.map { XilonResponseBoundary.clean(it) }
+                val elapsed = android.os.SystemClock.elapsedRealtime() - startedAt
                             val loaded = attempt.getOrDefault(false)
                             val storedHistory = if (loaded) runCatching { LocalConversationStore.load(context, model.name) }.getOrDefault(emptyList()) else emptyList()
                             (context as ComponentActivity).runOnUiThread {
@@ -726,17 +727,17 @@ private fun InstalledModelsScreen() {
                 else runCatching {
                     LocalLlama.generateStreaming(conversation, outputLimit) { partial ->
                         (context as ComponentActivity).runOnUiThread {
-                            response = partial
+                            response = XilonResponseBoundary.clean(partial)
                         }
                     }
                 }
                 val elapsed = android.os.SystemClock.elapsedRealtime() - startedAt
-                val tokenCount = result.getOrNull()?.let { runCatching { LocalLlama.countTokens(it) }.getOrNull() }
+                val tokenCount = cleanedResult.getOrNull()?.let { runCatching { LocalLlama.countTokens(it) }.getOrNull() }
                 val timings = runCatching { LocalLlama.lastTimings() }.getOrNull()
                 val memoryAfter = InferenceProfiler.snapshot()
-                val completed = result.isSuccess && !stopRequested.get()
+                val completed = cleanedResult.isSuccess && !stopRequested.get()
                 val nextHistory = if (completed)
-                    completeHistorySnapshot + (submitted to result.getOrThrow())
+                    completeHistorySnapshot + (submitted to cleanedResult.getOrThrow())
                 else emptyList()
                 val saved = if (completed) runCatching {
                     LocalConversationStore.save(context, modelSnapshot, nextHistory)
@@ -747,7 +748,7 @@ private fun InstalledModelsScreen() {
                     nativeTimings = timings
                     currentPssMiB = memoryAfter.totalPssKiB / 1024.0
                     nativeHeapMiB = memoryAfter.nativeHeapKiB / 1024.0
-                    response = if (stopRequested.get()) "Generare oprită. Text parțial:\\n" + result.getOrDefault(response) else result.getOrElse { "Eroare: ${it.message}" }
+                    response = if (stopRequested.get()) "Generare oprită. Text parțial:\\n" + cleanedResult.getOrDefault(response) else cleanedResult.getOrElse { "Eroare: ${it.message}" }
                     if (completed) {
                         chatHistory = nextHistory
                         prompt = ""
