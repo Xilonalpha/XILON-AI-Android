@@ -24,6 +24,46 @@ void unload() {
     if (context) { llama_free(context); context = nullptr; }
     if (model) { llama_model_free(model); model = nullptr; }
 }
+// Convert ordinary UTF-8 to UTF-16 for JNI, including supplementary characters.
+jstring unicode(JNIEnv* env, const std::string& value) {
+    std::vector<jchar> chars;
+    chars.reserve(value.size());
+    for (size_t i = 0; i < value.size();) {
+        const unsigned char lead = static_cast<unsigned char>(value[i]);
+        uint32_t cp = 0;
+        size_t length = 1;
+        if (lead < 0x80) cp = lead;
+        else if ((lead & 0xE0) == 0xC0) { cp = lead & 0x1F; length = 2; }
+        else if ((lead & 0xF0) == 0xE0) { cp = lead & 0x0F; length = 3; }
+        else if ((lead & 0xF8) == 0xF0) { cp = lead & 0x07; length = 4; }
+        else cp = 0xFFFD;
+        if (length > 1) {
+            if (i + length > value.size()) { cp = 0xFFFD; length = 1; }
+            else {
+                bool valid = true;
+                for (size_t j = 1; j < length; ++j) {
+                    const auto next = static_cast<unsigned char>(value[i + j]);
+                    if ((next & 0xC0) != 0x80) { valid = false; break; }
+                    cp = (cp << 6) | (next & 0x3F);
+                }
+                if (!valid || (length == 2 && cp < 0x80) ||
+                    (length == 3 && cp < 0x800) || (length == 4 && cp < 0x10000) ||
+                    cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF)) {
+                    cp = 0xFFFD;
+                    length = 1;
+                }
+            }
+        }
+        i += length;
+        if (cp <= 0xFFFF) chars.push_back(static_cast<jchar>(cp));
+        else {
+            cp -= 0x10000;
+            chars.push_back(static_cast<jchar>(0xD800 + (cp >> 10)));
+            chars.push_back(static_cast<jchar>(0xDC00 + (cp & 0x3FF)));
+        }
+    }
+    return env->NewString(chars.data(), static_cast<jsize>(chars.size()));
+}
 jstring fail(JNIEnv* env, const char* message) {
     jclass exception = env->FindClass("java/lang/IllegalStateException");
     if (exception) {
@@ -145,7 +185,7 @@ static jstring generate_impl(JNIEnv* env, jstring prompt, jint max_tokens, jobje
         if (piece_failed) break;
         // Update after each completed token. A callback exception aborts generation.
         if (callback && !output.empty()) {
-            jstring partial = env->NewStringUTF(output.c_str());
+            jstring partial = unicode(env, output);
             if (!partial) break;
             jobject result = env->CallObjectMethod(callback, callbackMethod, partial);
             env->DeleteLocalRef(partial);
@@ -236,5 +276,5 @@ Java_com_xilonalpha_xilonai_LocalLlama_formatChat(JNIEnv* env, jobject,
                                                   buffer.data(), static_cast<int>(buffer.size()));
     if (written < 0 || written > needed) return nullptr;
     buffer[written] = '\0';
-    return env->NewStringUTF(buffer.data());
+    return unicode(env, std::string(buffer.data(), static_cast<size_t>(written)));
 }
