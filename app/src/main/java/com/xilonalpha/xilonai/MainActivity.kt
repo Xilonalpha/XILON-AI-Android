@@ -392,14 +392,13 @@ private fun InstalledModelsScreen() {
             }
         }) { Text("Șterge istoricul conversației") }
         Text("Lungimea răspunsului (telefonul a măsurat ~1,1 tokenuri/s)", style = MaterialTheme.typography.bodySmall)
-        androidx.compose.material3.SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            listOf(16, 32, 64).forEachIndexed { index, count ->
-                androidx.compose.material3.SegmentedButton(
-                    selected = maxResponseTokens == count,
-                    onClick = { maxResponseTokens = count },
-                    enabled = !busy,
-                    shape = androidx.compose.material3.SegmentedButtonDefaults.itemShape(index, 3)
-                ) { Text("$count") }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf(16, 32, 64).forEach { count ->
+                if (maxResponseTokens == count) {
+                    Button(enabled = !busy, onClick = { maxResponseTokens = count }) { Text("$count") }
+                } else {
+                    OutlinedButton(enabled = !busy, onClick = { maxResponseTokens = count }) { Text("$count") }
+                }
             }
         }
         OutlinedTextField(value = prompt, onValueChange = { prompt = it }, label = { Text("Mesaj") }, modifier = Modifier.fillMaxWidth())
