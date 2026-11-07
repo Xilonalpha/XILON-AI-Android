@@ -128,6 +128,7 @@ private fun ModelExplorer() {
     var loading by remember { mutableStateOf(false) }
     var newest by remember { mutableStateOf(true) }
     var searchText by remember { mutableStateOf("") }
+    var hubQuery by remember { mutableStateOf("") }
     var selectedModel by remember { mutableStateOf<String?>(null) }
     var candidates by remember { mutableStateOf<List<GgufCandidate>>(emptyList()) }
     var candidateError by remember { mutableStateOf<String?>(null) }
@@ -144,7 +145,9 @@ private fun ModelExplorer() {
         thread(name = "hf-catalog") {
             try {
                 val sort = if (newest) "lastModified" else "downloads"
-                val endpoint = "https://huggingface.co/api/models?filter=gguf&sort=$sort&direction=-1&limit=50"
+                val encodedQuery = java.net.URLEncoder.encode(hubQuery.trim(), "UTF-8")
+                val queryPart = if (encodedQuery.isBlank()) "" else "&search=$encodedQuery"
+                val endpoint = "https://huggingface.co/api/models?filter=gguf&sort=$sort&direction=-1&limit=100$queryPart"
                 val connection = URL(endpoint).openConnection() as HttpURLConnection
                 connection.connectTimeout = 12000
                 connection.readTimeout = 15000
@@ -179,10 +182,18 @@ private fun ModelExplorer() {
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
         leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-        label = { Text("Caută în catalogul încărcat") },
+        label = { Text("Caută modele pe Hugging Face") },
         placeholder = { Text("Ex: Qwen, Llama, Gemma") }
     )
-    Text("Catalog online. Estimarea RAM este orientativă; suportul llama.cpp nu este verificat.", style = MaterialTheme.typography.bodySmall)
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Button(enabled = !loading, onClick = { hubQuery = searchText.trim(); refresh() }) {
+            Icon(Icons.Filled.Search, null); Spacer(Modifier.width(6.dp)); Text("Caută online")
+        }
+        if (hubQuery.isNotBlank()) TextButton(enabled = !loading, onClick = {
+            searchText = ""; hubQuery = ""; refresh()
+        }) { Text("Resetează") }
+    }
+    Text("Rezultate Hugging Face pentru: ${hubQuery.ifBlank { "catalog general" }}. Compatibilitatea este estimată.", style = MaterialTheme.typography.bodySmall)
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         FilterChip(selected = newest, onClick = { newest = true }, label = { Text("Recente") })
         FilterChip(selected = !newest, onClick = { newest = false }, label = { Text("Populare") })
@@ -190,10 +201,8 @@ private fun ModelExplorer() {
     }
     if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
     error?.let { Text("Eroare: $it", color = MaterialTheme.colorScheme.error) }
-    val visibleModels = remember(models, searchText) {
-        if (searchText.isBlank()) models else models.filter { it.id.contains(searchText.trim(), ignoreCase = true) }
-    }
-    Text("${visibleModels.size} modele afișate din ${models.size} încărcate", style = MaterialTheme.typography.bodySmall)
+    val visibleModels = models
+    Text("${visibleModels.size} rezultate primite de la Hugging Face (maximum 100 per cerere)", style = MaterialTheme.typography.bodySmall)
     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items(visibleModels, key = { it.id }) { model ->
             Card(Modifier.fillMaxWidth()) {
