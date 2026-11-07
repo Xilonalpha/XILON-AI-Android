@@ -1,7 +1,5 @@
 package com.xilonalpha.xilonai
 
-import java.util.Locale
-
 /**
  * Conservative offline multi-action planner. Each step is an explicit allowlisted
  * Android action; never invents app capabilities or silently sends messages.
@@ -19,7 +17,7 @@ object XilonActionPlanner {
         if (parts.isEmpty() || parts.size > 5) return null
         val steps = parts.map { part ->
             val match = volume.find(part)
-            val proposal = if (match != null && match.groupValues[1].toIntOrNull() in 0..100) {
+            val proposal = if (match != null && (match.groupValues[1].toIntOrNull() ?: -1) in 0..100) {
                 XilonActions.Proposal(XilonActions.Kind.SET_VOLUME,
                     "Volum media la ${match.groupValues[1]}%",
                     "Setează volumul media la procentul solicitat.")
