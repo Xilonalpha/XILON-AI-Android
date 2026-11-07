@@ -400,6 +400,10 @@ private fun InstalledModelsScreen() {
     var actionFeedback by remember { mutableStateOf("") }
     var mediaSnapshot by remember { mutableStateOf<XilonMediaSessions.Snapshot?>(null) }
     var mediaStatus by remember { mutableStateOf("") }
+    val mediaObserver = remember(context) {
+        XilonMediaObserver(context) { mediaSnapshot = it }
+    }
+    DisposableEffect(mediaObserver) { onDispose { mediaObserver.close() } }
     LaunchedEffect(prompt) { actionFeedback = "" }
     val taskDecision = remember(prompt) { XilonCore.classify(prompt) }
     val suggestedModel = remember(revision, prompt) {
@@ -598,11 +602,11 @@ private fun InstalledModelsScreen() {
             verticalAlignment = Alignment.CenterVertically) {
             OutlinedButton(onClick = {
                 val access = runCatching { XilonMediaSessions.hasAccess(context) }.getOrDefault(false)
-                mediaSnapshot = if (access) XilonMediaSessions.snapshot(context) else null
+                val observing = if (access) mediaObserver.start() else false
                 mediaStatus = when {
                     !access -> "Acces media neactivat. Spune «activează controlul media» pentru a deschide setările."
-                    mediaSnapshot == null -> "Nicio sesiune media activă cu stare Play/Pause."
-                    else -> "Stare citită din sesiunea media Android."
+                    !observing -> "Nicio sesiune media activă cu stare Play/Pause."
+                    else -> "Monitorizare activă: schimbările Play/Pause și metadatele sunt citite prin callback Android."
                 }
             }) { Text("Verifică redarea") }
             if (mediaSnapshot != null) Text(mediaSnapshot!!.state,
