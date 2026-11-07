@@ -321,6 +321,7 @@ private fun InstalledModelsScreen() {
     var loadDurationMs by remember { mutableStateOf<Long?>(null) }
     var generationDurationMs by remember { mutableStateOf<Long?>(null) }
     var outputTokenCount by remember { mutableStateOf<Int?>(null) }
+    var nativeTimings by remember { mutableStateOf<LongArray?>(null) }
     var loadMemoryDeltaMiB by remember { mutableStateOf<Double?>(null) }
     var currentPssMiB by remember { mutableStateOf<Double?>(null) }
     var nativeHeapMiB by remember { mutableStateOf<Double?>(null) }
@@ -334,6 +335,14 @@ private fun InstalledModelsScreen() {
         loadMemoryDeltaMiB?.let { Text("Variație memorie PSS la încărcare: %.1f MiB".format(java.util.Locale.ROOT, it)) }
         currentPssMiB?.let { Text("Memorie proces PSS: %.1f MiB".format(java.util.Locale.ROOT, it)) }
         nativeHeapMiB?.let { Text("Heap nativ alocat: %.1f MiB".format(java.util.Locale.ROOT, it)) }
+        nativeTimings?.let { timings ->
+            if (timings.size >= 3 && timings[0] >= 0 && timings[1] >= 0) {
+                Text("Procesare prompt: ${timings[0]} ms · Decodare: ${timings[1]} ms")
+                if (timings[1] > 0 && timings[2] > 0) {
+                    Text("Decodare: %.1f tokenuri/s (%d tokenuri)".format(java.util.Locale.ROOT, timings[2] * 1000.0 / timings[1], timings[2]))
+                }
+            }
+        }
         generationDurationMs?.let { elapsed ->
             Text("Timp ultima generare: $elapsed ms")
             val tokens = outputTokenCount
@@ -357,10 +366,12 @@ private fun InstalledModelsScreen() {
                 val result = runCatching { LocalLlama.generate(conversation, 128) }
                 val elapsed = android.os.SystemClock.elapsedRealtime() - startedAt
                 val tokenCount = result.getOrNull()?.let { runCatching { LocalLlama.countTokens(it) }.getOrNull() }
+                val timings = runCatching { LocalLlama.lastTimings() }.getOrNull()
                 val memoryAfter = InferenceProfiler.snapshot()
                 (context as ComponentActivity).runOnUiThread {
                     generationDurationMs = elapsed
                     outputTokenCount = tokenCount
+                    nativeTimings = timings
                     currentPssMiB = memoryAfter.totalPssKiB / 1024.0
                     nativeHeapMiB = memoryAfter.nativeHeapKiB / 1024.0
                     response = result.getOrElse { "Eroare: ${it.message}" }
@@ -419,6 +430,7 @@ private fun InstalledModelsScreen() {
                                 nativeHeapMiB = memoryAfter.nativeHeapKiB / 1024.0
                                 generationDurationMs = null
                                 outputTokenCount = null
+                                nativeTimings = null
                                 activeModel = if (loaded) model.name else ""
                                 chatHistory = emptyList()
                                 response = if (loaded) "Model încărcat. Poți trimite un mesaj." else "Încărcarea a eșuat: ${attempt.exceptionOrNull()?.message ?: "format incompatibil, model incomplet sau memorie insuficientă"}."
