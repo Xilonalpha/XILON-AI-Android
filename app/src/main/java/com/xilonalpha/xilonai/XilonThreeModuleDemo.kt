@@ -8,7 +8,7 @@ object XilonThreeModuleDemo {
 </head><body>
 <script type="module">
 import {Scene, PerspectiveCamera, WebGLRenderer, Mesh, BoxGeometry, MeshNormalMaterial, Color} from 'three';
-const scene=new Scene();scene.background=new Color(0x10152b);
+const scene=new Scene();window.xilonScene=scene;scene.background=new Color(0x10152b);
 const camera=new PerspectiveCamera(60,1,.1,100);camera.position.z=4;
 const renderer=new WebGLRenderer({antialias:true});document.body.appendChild(renderer.domElement);
 const cube=new Mesh(new BoxGeometry(1.5,1.5,1.5),new MeshNormalMaterial());scene.add(cube);
