@@ -27,6 +27,8 @@ object GgufDownloader {
     ): Result {
         require(modelId.matches(Regex("[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")))
         require(filename.endsWith(".gguf", true))
+        val preflight = ModelIntelligence.analyze(filename)
+        require(preflight.runnableCandidate) { preflight.reason }
         require(filename.split('/').all { it.isNotBlank() && it != "." && it != ".." })
         require(expectedBytes > 0) { "Known size required for safe download" }
         val root = File(context.filesDir, "models")
