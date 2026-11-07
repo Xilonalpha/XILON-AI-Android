@@ -324,6 +324,9 @@ private fun DeviceInfo() {
 @Composable
 private fun InstalledModelsScreen() {
     val context = LocalContext.current
+    var speechStatus by remember { mutableStateOf("") }
+    val speech = remember(context) { XilonSpeech(context) { speechStatus = it } }
+    DisposableEffect(speech) { onDispose { speech.close() } }
     val voice = remember(context) { XilonVoice(context) }
     var voiceStatus by remember { mutableStateOf("") }
     DisposableEffect(voice) { onDispose { voice.stop() } }
@@ -604,6 +607,17 @@ private fun InstalledModelsScreen() {
                     }) { Text("Confirmă și execută planul") }
                 }
             }
+        }
+        if (response.isNotBlank() && !busy) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                OutlinedButton(onClick = { speech.speak(response) }) {
+                    Text("Citește răspunsul offline")
+                }
+                TextButton(onClick = { speech.stop() }) { Text("Oprește vocea") }
+            }
+            if (speechStatus.isNotBlank()) Text(speechStatus,
+                style = MaterialTheme.typography.labelSmall)
         }
         if (actionFeedback.isNotBlank()) Text(actionFeedback,
             style = MaterialTheme.typography.bodySmall)
