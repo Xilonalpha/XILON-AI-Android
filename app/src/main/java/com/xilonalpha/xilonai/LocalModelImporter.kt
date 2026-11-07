@@ -25,6 +25,8 @@ object LocalModelImporter {
         val filename = suppliedName.substringAfterLast('/').substringAfterLast('\\')
         require(filename.endsWith(".gguf", ignoreCase = true)) { "Selectează un fișier .gguf complet." }
         require(filename.length in 6..180 && filename != "." && filename != "..") { "Nume de fișier invalid." }
+        val analysis = ModelIntelligence.analyze(filename)
+        require(analysis.runnableCandidate) { analysis.reason }
         val dir = File(context.filesDir, "models")
         check(dir.isDirectory || dir.mkdirs()) { "Nu se poate crea directorul modelelor." }
         if (declaredSize != null) {
@@ -70,6 +72,9 @@ object LocalModelImporter {
             } ?: throw IllegalArgumentException("Nu se poate deschide fișierul selectat.")
             onProgress(total, declaredSize)
             require(total >= 32) { "Fișier GGUF incomplet." }
+            if (declaredSize != null) {
+                require(total == declaredSize) { "Copiere incompletă: $total din $declaredSize octeți." }
+            }
             check(temp.renameTo(target)) { "Nu se poate finaliza importul." }
             return target
         } finally {
