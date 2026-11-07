@@ -224,10 +224,10 @@ private fun InstalledModelsScreen() {
                 Column(Modifier.padding(12.dp)) {
                     Text(model.name, style = MaterialTheme.typography.titleSmall)
                     Text("Dimensiune: ${model.length() / (1024L * 1024L)} MiB")
-                    val ggufVersion = remember(model.absolutePath) {
-                        runCatching { NativeGgufProbe.version(model) }.getOrDefault(-1)
+                    val header = remember(model.absolutePath) {
+                        runCatching { NativeGgufProbe.inspect(model) }.getOrNull()
                     }
-                    Text(if (ggufVersion > 0) "GGUF v$ggufVersion · antet verificat nativ" else "GGUF: antet invalid sau bibliotecă nativă indisponibilă")
+                    Text(if (header != null) "GGUF v${header.version} · ${header.tensorCount} tensori · ${header.metadataCount} metadate" else "GGUF: antet invalid sau bibliotecă nativă indisponibilă")
                     TextButton(onClick = { confirmDelete = model.name }) { Text("Șterge modelul") }
                 }
             }
