@@ -11,7 +11,7 @@ import android.provider.Settings
  * shell commands, arbitrary URLs or silent external side effects.
  */
 object XilonActions {
-    enum class Kind { SETTINGS, MUSIC, WEB_SEARCH, PLAY_PAUSE, NEXT_TRACK, PREVIOUS_TRACK, VOLUME_UP, VOLUME_DOWN, SET_VOLUME, SHARE_MESSAGE, YOUTUBE_SEARCH, MEDIA_ACCESS, OPEN_APP }
+    enum class Kind { SETTINGS, MUSIC, WEB_SEARCH, PLAY_PAUSE, PLAY_MEDIA, PAUSE_MEDIA, NEXT_TRACK, PREVIOUS_TRACK, VOLUME_UP, VOLUME_DOWN, SET_VOLUME, SHARE_MESSAGE, YOUTUBE_SEARCH, MEDIA_ACCESS, OPEN_APP }
     data class Proposal(val kind: Kind, val label: String, val explanation: String)
 
     private val appPackages = mapOf(
@@ -51,6 +51,12 @@ object XilonActions {
                 Proposal(Kind.SHARE_MESSAGE, "Pregătește mesaj WhatsApp",
                     "Deschide WhatsApp cu textul pregătit. Tu alegi destinatarul și confirmi trimiterea.")
             listOf("pauză muzica", "pauza muzica", "oprește muzica", "opreste muzica",
+                "pause music", "stop music").any(q::contains) ->
+                Proposal(Kind.PAUSE_MEDIA, "Pauză media", "Solicită pauză pentru sesiunea media activă.")
+            listOf("reia muzica", "reia muzică", "pornește muzica", "porneste muzica",
+                "play music", "resume music").any(q::contains) ->
+                Proposal(Kind.PLAY_MEDIA, "Pornește redarea", "Solicită redarea în sesiunea media activă.")
+            listOf("pauză muzica", "pauza muzica", "oprește muzica", "opreste muzica",
                 "play pause", "pause music", "reia muzica", "reia muzică")
                 .any(q::contains) ->
                 Proposal(Kind.PLAY_PAUSE, "Redare / pauză", "Trimite comanda către sesiunea media activă, dacă Android permite.")
@@ -83,9 +89,11 @@ object XilonActions {
     }
 
     fun execute(context: Context, proposal: Proposal, originalMessage: String): Boolean {
-        if (proposal.kind in setOf(Kind.PLAY_PAUSE, Kind.NEXT_TRACK, Kind.PREVIOUS_TRACK)) {
+        if (proposal.kind in setOf(Kind.PLAY_PAUSE, Kind.PLAY_MEDIA, Kind.PAUSE_MEDIA, Kind.NEXT_TRACK, Kind.PREVIOUS_TRACK)) {
             val command = when (proposal.kind) {
                 Kind.PLAY_PAUSE -> XilonMediaSessions.Command.TOGGLE
+                Kind.PLAY_MEDIA -> XilonMediaSessions.Command.PLAY
+                Kind.PAUSE_MEDIA -> XilonMediaSessions.Command.PAUSE
                 Kind.NEXT_TRACK -> XilonMediaSessions.Command.NEXT
                 else -> XilonMediaSessions.Command.PREVIOUS
             }
@@ -144,7 +152,7 @@ object XilonActions {
                     setPackage("com.whatsapp")
                 }
             }
-            Kind.PLAY_PAUSE, Kind.NEXT_TRACK, Kind.PREVIOUS_TRACK,
+            Kind.PLAY_PAUSE, Kind.PLAY_MEDIA, Kind.PAUSE_MEDIA, Kind.NEXT_TRACK, Kind.PREVIOUS_TRACK,
             Kind.VOLUME_UP, Kind.VOLUME_DOWN, Kind.SET_VOLUME -> return false
             Kind.OPEN_APP -> return false
             Kind.MEDIA_ACCESS -> Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
