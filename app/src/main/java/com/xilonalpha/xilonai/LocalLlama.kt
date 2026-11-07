@@ -19,7 +19,7 @@ object LocalLlama {
     /** Returns null if the loaded GGUF lacks a usable native chat template. */
     external fun formatChat(roles: Array<String>, contents: Array<String>): String?
 
-    fun loadModel(file: File, contextSize: Int = 2048): Boolean {
+    fun loadModel(file: File, contextSize: Int = 4096): Boolean {
         require(file.isFile && file.extension.equals("gguf", true))
         return load(file.absolutePath, contextSize)
     }
