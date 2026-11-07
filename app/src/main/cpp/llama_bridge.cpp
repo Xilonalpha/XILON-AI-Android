@@ -80,19 +80,11 @@ Java_com_xilonalpha_xilonai_LocalLlama_generate(JNIEnv* env, jobject, jstring pr
     const int limit = std::max(1, std::min(512, static_cast<int>(max_tokens)));
     if (count <= 0) return env->NewStringUTF("Tokenization failed");
     const int available = static_cast<int>(llama_n_ctx(context));
-    if (count + limit > available) {
-        // Keep the beginning-of-sequence token and the newest conversational context.
-        const int keep = available - limit;
-        if (keep < 2) return env->NewStringUTF("Context limit exceeded");
-        if (count > keep) {
-            std::vector<llama_token> trimmed;
-            trimmed.reserve(keep);
-            trimmed.push_back(tokens.front());
-            trimmed.insert(trimmed.end(), tokens.begin() + count - (keep - 1), tokens.begin() + count);
-            tokens.swap(trimmed);
-        }
-    }
-    const int effective_count = static_cast<int>(tokens.size());
+    // Do not truncate raw tokens: this can break special role markers and chat templates.
+    // The Kotlin conversation builder must remove whole turns before generation.
+    if (count + limit > available)
+        return env->NewStringUTF("Context limit exceeded: shorten conversation");
+    const int effective_count = count;
     llama_memory_clear(llama_get_memory(context), true);
     const auto prompt_start = Clock::now();
     const int chunk = 512;
