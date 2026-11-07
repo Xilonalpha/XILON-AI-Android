@@ -72,8 +72,7 @@ Java_com_xilonalpha_xilonai_LocalLlama_unload(JNIEnv*, jobject) {
     unload();
 }
 
-extern "C" JNIEXPORT jstring JNICALL
-Java_com_xilonalpha_xilonai_LocalLlama_generate(JNIEnv* env, jobject, jstring prompt, jint max_tokens) {
+static jstring generate_impl(JNIEnv* env, jstring prompt, jint max_tokens, jobject callback) {
     std::lock_guard<std::mutex> lock(guard);
     last_prompt_ms = last_decode_ms = -1;
     last_generated_tokens = 0;
@@ -110,6 +109,21 @@ Java_com_xilonalpha_xilonai_LocalLlama_generate(JNIEnv* env, jobject, jstring pr
     const auto decode_start = Clock::now();
     llama_sampler* sampler = llama_sampler_init_greedy();
     if (!sampler) return fail(env, "Sampler initialization failed");
+    jclass callbackClass = nullptr;
+    jmethodID callbackMethod = nullptr;
+    if (callback) {
+        callbackClass = env->GetObjectClass(callback);
+        if (!callbackClass) {
+            llama_sampler_free(sampler);
+            return fail(env, "Streaming callback unavailable");
+        }
+        callbackMethod = env->GetMethodID(callbackClass, "invoke", "(Ljava/lang/Object;)Ljava/lang/Object;");
+        if (!callbackMethod) {
+            env->DeleteLocalRef(callbackClass);
+            llama_sampler_free(sampler);
+            return nullptr;
+        }
+    }
     std::string output;
     bool decode_failed = false;
     bool piece_failed = false;
@@ -129,6 +143,15 @@ Java_com_xilonalpha_xilonai_LocalLlama_generate(JNIEnv* env, jobject, jstring pr
             output.append(piece, static_cast<size_t>(n));
         }
         if (piece_failed) break;
+        // Update after each completed token. A callback exception aborts generation.
+        if (callback && !output.empty()) {
+            jstring partial = env->NewStringUTF(output.c_str());
+            if (!partial) break;
+            jobject result = env->CallObjectMethod(callback, callbackMethod, partial);
+            env->DeleteLocalRef(partial);
+            if (result) env->DeleteLocalRef(result);
+            if (env->ExceptionCheck()) break;
+        }
         if (i + 1 < limit) {
             llama_token next = token;
             if (llama_decode(context, llama_batch_get_one(&next, 1)) != 0) {
@@ -138,11 +161,25 @@ Java_com_xilonalpha_xilonai_LocalLlama_generate(JNIEnv* env, jobject, jstring pr
         }
     }
     llama_sampler_free(sampler);
+    if (callbackClass) env->DeleteLocalRef(callbackClass);
+    if (env->ExceptionCheck()) return nullptr;
     last_decode_ms = millis(decode_start);
     __android_log_print(ANDROID_LOG_INFO, "XilonInference", "decode_ms=%lld generated_tokens=%d", last_decode_ms, last_generated_tokens);
     if (decode_failed) return fail(env, "Token decoding failed");
     if (piece_failed) return fail(env, "Token text conversion failed");
     return env->NewStringUTF(output.c_str());
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_xilonalpha_xilonai_LocalLlama_generate(JNIEnv* env, jobject, jstring prompt, jint max_tokens) {
+    return generate_impl(env, prompt, max_tokens, nullptr);
+}
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_xilonalpha_xilonai_LocalLlama_generateStreaming(JNIEnv* env, jobject, jstring prompt,
+                                                           jint max_tokens, jobject callback) {
+    if (!callback) return fail(env, "Missing streaming callback");
+    return generate_impl(env, prompt, max_tokens, callback);
 }
 
 extern "C" JNIEXPORT jint JNICALL
