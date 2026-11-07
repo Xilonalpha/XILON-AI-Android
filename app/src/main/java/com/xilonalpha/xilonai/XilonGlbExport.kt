@@ -8,6 +8,14 @@ import java.nio.ByteOrder
 /** Converts a triangulated Wavefront OBJ mesh into a self-contained glTF 2.0 GLB. */
 object XilonGlbExport {
     fun fromObj(obj: String): ByteArray {
+        val colors = obj.lineSequence().map { it.trim() }
+            .filter { it.startsWith("# xilon_base_color ") }
+            .mapNotNull { line ->
+                val values = line.removePrefix("# xilon_base_color ").split(Regex("\\s+"))
+                    .mapNotNull { it.toDoubleOrNull() }
+                values.takeIf { it.size == 3 && it.all { v -> v.isFinite() && v in 0.0..1.0 } }
+            }.toList()
+        val singleColor = colors.singleOrNull()
         val vertices = mutableListOf<FloatArray>()
         val triangles = mutableListOf<Int>()
         obj.lineSequence().forEach { raw ->
@@ -63,6 +71,15 @@ object XilonGlbExport {
                 .put(JSONObject().put("buffer", 0).put("byteOffset", indicesOffset)
                     .put("byteLength", triangles.size * 4).put("target", 34963)))
             .put("accessors", accessors)
+        if (singleColor != null) {
+            val material = JSONObject().put("pbrMetallicRoughness",
+                JSONObject().put("baseColorFactor",
+                    JSONArray(singleColor + listOf(1.0)))
+                    .put("metallicFactor", 0.0).put("roughnessFactor", 1.0))
+            gltf.put("materials", JSONArray().put(material))
+            gltf.getJSONArray("meshes").getJSONObject(0)
+                .getJSONArray("primitives").getJSONObject(0).put("material", 0)
+        }
         val json = gltf.toString().toByteArray(Charsets.UTF_8)
         val jsonPadded = (json.size + 3) and -4
         val total = 12 + 8 + jsonPadded + 8 + binLength
