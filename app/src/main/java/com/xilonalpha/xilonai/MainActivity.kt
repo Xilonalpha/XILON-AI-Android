@@ -852,6 +852,36 @@ private fun InstalledModelsScreen() {
                 Spacer(Modifier.weight(1f))
             }
         }
+        // A recognized device command can be executed directly from the composer,
+        // but only after the user explicitly confirms the displayed action plan.
+        if (actionPlan != null && !busy) {
+            Surface(
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(Modifier.fillMaxWidth().padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Acțiune Android detectată · ${actionPlan.steps.size} pași",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer)
+                    actionPlan.steps.forEachIndexed { index, step ->
+                        Text("${index + 1}. ${step.proposal.label}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer)
+                    }
+                    Button(onClick = {
+                        val report = XilonActionPlanner.executeWithReport(context, actionPlan)
+                        val summary = if (report.allDispatched)
+                            "Trimise: ${report.dispatched}/${report.total}; verificate: ${report.verified}. "
+                        else "Oprit la pasul ${report.failedStep}; trimise: ${report.dispatched}/${report.total}. "
+                        actionFeedback = summary + report.details.joinToString("\\n")
+                    }) { Text("Confirmă acțiunea Android") }
+                    if (actionFeedback.isNotBlank()) {
+                        Text(actionFeedback, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
         Button(enabled = !busy && prompt.isNotBlank(), onClick = {
             stopRequested.set(false)
             generationStartedAt = android.os.SystemClock.elapsedRealtime()
