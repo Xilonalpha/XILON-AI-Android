@@ -16,13 +16,15 @@ object XilonThreeOffline {
     fun prepare(html: String): String {
         var result = classicScript.replace(html) { match ->
             match.groupValues[1] + "https://xilon-preview.invalid/three.min.js" +
-                match.groupValues[3]
+                match.groupValues[3] +
+                """<script src="https://xilon-preview.invalid/GLTFExporter.js"></script>"""
         }
         result = moduleUrl.replace(result) { match ->
             match.groupValues[1] + "three" + match.groupValues[3]
         }
         if (!bareImport.containsMatchIn(result)) return result
         val prefix = """<script src="https://xilon-preview.invalid/three.min.js"></script>
+<script src="https://xilon-preview.invalid/GLTFExporter.js"></script>
 <script type="importmap">{"imports":{"three":"https://xilon-preview.invalid/three-module-adapter.js"}}</script>"""
         val head = Regex("""(?i)<head\b[^>]*>""")
         val match = head.find(result)
