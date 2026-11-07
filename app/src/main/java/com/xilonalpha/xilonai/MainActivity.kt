@@ -7,7 +7,6 @@ import android.os.StatFs
 import java.util.concurrent.atomic.AtomicBoolean
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -86,7 +85,7 @@ private fun ModelExplorer() {
                 connection.readTimeout = 15000
                 connection.setRequestProperty("Accept", "application/json")
                 try {
-                    if (connection.responseCode != 200) error("HTTP ${connection.responseCode}")
+                    if (connection.responseCode != 200) throw java.io.IOException("HTTP ${connection.responseCode}")
                     val body = connection.inputStream.bufferedReader().use { it.readText() }
                     val array = JSONArray(body)
                     val parsed = (0 until array.length()).mapNotNull { i ->
@@ -109,7 +108,7 @@ private fun ModelExplorer() {
     }
     LaunchedEffect(newest) { refresh() }
     Text("Catalog GGUF Hugging Face", style = MaterialTheme.typography.titleMedium)
-    Text("Descoperire online. Compatibilitatea și memoria necesară nu sunt încă verificate.", style = MaterialTheme.typography.bodySmall)
+    Text("Catalog online. Estimarea RAM este orientativă; suportul llama.cpp nu este verificat.", style = MaterialTheme.typography.bodySmall)
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         FilterChip(selected = newest, onClick = { newest = true }, label = { Text("Recente") })
         FilterChip(selected = !newest, onClick = { newest = false }, label = { Text("Populare") })
