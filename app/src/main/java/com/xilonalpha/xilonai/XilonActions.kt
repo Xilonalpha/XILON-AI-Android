@@ -12,12 +12,17 @@ import android.provider.Settings
  * shell commands, arbitrary URLs or silent external side effects.
  */
 object XilonActions {
-    enum class Kind { SETTINGS, MUSIC, WEB_SEARCH, PLAY_PAUSE, NEXT_TRACK, PREVIOUS_TRACK, VOLUME_UP, VOLUME_DOWN, SET_VOLUME, SHARE_MESSAGE, YOUTUBE_SEARCH }
+    enum class Kind { SETTINGS, MUSIC, WEB_SEARCH, PLAY_PAUSE, NEXT_TRACK, PREVIOUS_TRACK, VOLUME_UP, VOLUME_DOWN, SET_VOLUME, SHARE_MESSAGE, YOUTUBE_SEARCH, MEDIA_ACCESS }
     data class Proposal(val kind: Kind, val label: String, val explanation: String)
 
     fun propose(text: String): Proposal? {
         val q = text.trim().lowercase(java.util.Locale.ROOT)
         return when {
+            listOf("activează controlul media", "activeaza controlul media",
+                "permisiune control media", "enable media control")
+                .any(q::contains) ->
+                Proposal(Kind.MEDIA_ACCESS, "Configurează controlul media",
+                    "Deschide setările Android pentru activarea manuală a accesului la notificări.")
             listOf("caută pe youtube:", "cauta pe youtube:", "youtube search:")
                 .any(q::startsWith) ->
                 Proposal(Kind.YOUTUBE_SEARCH, "Caută pe YouTube",
@@ -60,7 +65,17 @@ object XilonActions {
     }
 
     fun execute(context: Context, proposal: Proposal, originalMessage: String): Boolean {
-        if (proposal.kind in setOf(Kind.PLAY_PAUSE, Kind.NEXT_TRACK,
+        if (proposal.kind in setOf(Kind.PLAY_PAUSE, Kind.NEXT_TRACK, Kind.PREVIOUS_TRACK)) {
+            val command = when (proposal.kind) {
+                Kind.PLAY_PAUSE -> XilonMediaSessions.Command.TOGGLE
+                Kind.NEXT_TRACK -> XilonMediaSessions.Command.NEXT
+                else -> XilonMediaSessions.Command.PREVIOUS
+            }
+            val result = runCatching { XilonMediaSessions.command(context, command) }.getOrNull()
+            return result?.outcome == XilonMediaSessions.Outcome.DISPATCHED ||
+                result?.outcome == XilonMediaSessions.Outcome.VERIFIED
+        }
+        if (proposal.kind in setOf(Kind.NEXT_TRACK,
                 Kind.PREVIOUS_TRACK, Kind.VOLUME_UP, Kind.VOLUME_DOWN, Kind.SET_VOLUME)) {
             return try {
                 val audio = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -109,6 +124,7 @@ object XilonActions {
             }
             Kind.PLAY_PAUSE, Kind.NEXT_TRACK, Kind.PREVIOUS_TRACK,
             Kind.VOLUME_UP, Kind.VOLUME_DOWN, Kind.SET_VOLUME -> return false
+            Kind.MEDIA_ACCESS -> Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
             Kind.SETTINGS -> Intent(Settings.ACTION_SETTINGS)
             Kind.MUSIC -> Intent("android.intent.action.MUSIC_PLAYER")
             Kind.WEB_SEARCH -> {
