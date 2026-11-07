@@ -238,9 +238,23 @@ private fun ModelExplorer() {
                             OutlinedButton(onClick = { cancelDownload.set(true); downloadStatus = "Anulare solicitată..." }) { Text("Anulează descărcarea") }
                         }
                         if (downloadStatus.isNotBlank()) Text(downloadStatus, style = MaterialTheme.typography.bodySmall)
-                        candidates.take(12).forEach { file ->
+                        val memoryManager = context.getSystemService(ActivityManager::class.java)
+                        val availableRam = ActivityManager.MemoryInfo().also { memoryManager.getMemoryInfo(it) }.availMem
+                        val recommendations = remember(candidates, availableRam) {
+                            ModelRecommender.rank(candidates, availableRam)
+                        }
+                        recommendations.take(12).forEach { recommendation ->
+                            val file = recommendation.candidate
+                            val tierLabel = when (recommendation.tier) {
+                                ModelRecommender.Tier.RECOMMENDED -> "Recomandat"
+                                ModelRecommender.Tier.POSSIBLE -> "Posibil"
+                                ModelRecommender.Tier.UNVERIFIED -> "Neverificat"
+                                ModelRecommender.Tier.NOT_RECOMMENDED -> "Nerecomandat"
+                            }
                             HorizontalDivider()
                             Text(file.filename)
+                            Text("$tierLabel · Scor orientativ: ${recommendation.score}/100", style = MaterialTheme.typography.titleSmall)
+                            Text(recommendation.explanation, style = MaterialTheme.typography.bodySmall)
                             Text("Dimensiune: ${file.sizeBytes / (1024L * 1024L)} MiB; RAM estimat: ${file.estimatedRequiredRamBytes / (1024L * 1024L)} MiB")
                             Text("${file.status}: ${file.reason}", style = MaterialTheme.typography.bodySmall)
                             if (file.status == CompatibilityStatus.ESTIMATED && file.sizeBytes > 0) {
