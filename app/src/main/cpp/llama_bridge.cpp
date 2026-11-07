@@ -89,3 +89,15 @@ Java_com_xilonalpha_xilonai_LocalLlama_generate(JNIEnv* env, jobject, jstring pr
     llama_sampler_free(sampler);
     return env->NewStringUTF(output.c_str());
 }
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_xilonalpha_xilonai_LocalLlama_countTokens(JNIEnv* env, jobject, jstring text) {
+    std::lock_guard<std::mutex> lock(guard);
+    if (!model) return -1;
+    const auto input = utf8(env, text);
+    if (input.empty()) return 0;
+    const llama_vocab* vocab = llama_model_get_vocab(model);
+    const int required = llama_tokenize(vocab, input.c_str(), static_cast<int32_t>(input.size()),
+                                        nullptr, 0, false, false);
+    return required >= 0 ? required : -required;
+}
