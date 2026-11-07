@@ -30,13 +30,31 @@ object XilonActionPlanner {
         return Plan(steps)
     }
 
-    /** Stops on first failure; later actions are never dispatched after an error. */
-    fun execute(context: android.content.Context, plan: Plan): Int {
-        var completed = 0
-        for (step in plan.steps) {
-            if (!XilonActions.execute(context, step.proposal, step.argument)) break
-            completed++
-        }
-        return completed
+    data class ExecutionReport(
+        val attempted: Int,
+        val dispatched: Int,
+        val total: Int,
+        val failedStep: Int?
+    ) {
+        val allDispatched: Boolean get() = dispatched == total
     }
+
+    /**
+     * Reports only Android dispatch success, never claims that another app
+     * completed an action. Stops before any subsequent step after a failure.
+     */
+    fun executeWithReport(context: android.content.Context, plan: Plan): ExecutionReport {
+        var dispatched = 0
+        for ((index, step) in plan.steps.withIndex()) {
+            val accepted = runCatching {
+                XilonActions.execute(context, step.proposal, step.argument)
+            }.getOrDefault(false)
+            if (!accepted) return ExecutionReport(index + 1, dispatched, plan.steps.size, index + 1)
+            dispatched++
+        }
+        return ExecutionReport(dispatched, dispatched, plan.steps.size, null)
+    }
+
+    fun execute(context: android.content.Context, plan: Plan): Int =
+        executeWithReport(context, plan).dispatched
 }
