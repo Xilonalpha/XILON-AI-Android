@@ -493,6 +493,9 @@ private fun InstalledModelsScreen() {
         OutlinedButton(onClick = { previewHtml = XilonThreeDemo.html }) {
             Text("Testează Three.js offline")
         }
+        OutlinedButton(onClick = { previewHtml = XilonThreeModuleDemo.html }) {
+            Text("Testează Three.js ES module")
+        }
         val exportableHtml = XilonHtmlExport.extract(response)
             ?: chatHistory.lastOrNull()?.second?.let { XilonHtmlExport.extract(it) }
         if (!busy && exportableHtml != null) {
