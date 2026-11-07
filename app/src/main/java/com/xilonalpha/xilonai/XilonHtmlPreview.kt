@@ -7,8 +7,6 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import java.io.ByteArrayInputStream
@@ -20,9 +18,6 @@ import java.io.ByteArrayInputStream
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun XilonHtmlPreview(html: String) {
-    val webView = remember {
-        null
-    }
     AndroidView(
         modifier = Modifier.fillMaxSize(),
         factory = { context ->
@@ -60,6 +55,11 @@ fun XilonHtmlPreview(html: String) {
                     "https://xilon-preview.invalid/", html, "text/html", "UTF-8", null
                 )
             }
+        },
+        onRelease = { view ->
+            view.stopLoading()
+            view.loadUrl("about:blank")
+            view.destroy()
         }
     )
 }
