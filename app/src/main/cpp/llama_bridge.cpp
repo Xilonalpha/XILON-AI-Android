@@ -127,3 +127,39 @@ Java_com_xilonalpha_xilonai_LocalLlama_lastTimings(JNIEnv* env, jobject) {
     if (result) env->SetLongArrayRegion(result, 0, 3, values);
     return result;
 }
+
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_xilonalpha_xilonai_LocalLlama_formatChat(JNIEnv* env, jobject,
+                                                   jobjectArray roles, jobjectArray contents) {
+    std::lock_guard<std::mutex> lock(guard);
+    if (!model || !roles || !contents) return nullptr;
+    const jsize count = env->GetArrayLength(roles);
+    if (count != env->GetArrayLength(contents) || count < 1 || count > 64) return nullptr;
+    const char* tmpl = llama_model_chat_template(model, nullptr);
+    if (!tmpl || !*tmpl) return nullptr;
+    std::vector<std::string> role_values, content_values;
+    role_values.reserve(count);
+    content_values.reserve(count);
+    for (jsize i = 0; i < count; ++i) {
+        auto role = static_cast<jstring>(env->GetObjectArrayElement(roles, i));
+        auto content = static_cast<jstring>(env->GetObjectArrayElement(contents, i));
+        role_values.push_back(utf8(env, role));
+        content_values.push_back(utf8(env, content));
+        if (role) env->DeleteLocalRef(role);
+        if (content) env->DeleteLocalRef(content);
+        if (role_values.back() != "system" && role_values.back() != "user" &&
+            role_values.back() != "assistant") return nullptr;
+    }
+    std::vector<llama_chat_message> messages;
+    messages.reserve(count);
+    for (jsize i = 0; i < count; ++i)
+        messages.push_back({role_values[i].c_str(), content_values[i].c_str()});
+    const int needed = llama_chat_apply_template(tmpl, messages.data(), count, true, nullptr, 0);
+    if (needed <= 0 || needed > 1024 * 1024) return nullptr;
+    std::vector<char> buffer(static_cast<size_t>(needed) + 1, 0);
+    const int written = llama_chat_apply_template(tmpl, messages.data(), count, true,
+                                                  buffer.data(), static_cast<int>(buffer.size()));
+    if (written < 0 || written > needed) return nullptr;
+    buffer[written] = '\0';
+    return env->NewStringUTF(buffer.data());
+}
