@@ -26,4 +26,14 @@ class XilonActionPlannerTest {
         assertTrue(plan!!.requiresConfirmation)
         assertEquals(XilonActions.Kind.SHARE_MESSAGE, plan.steps.single().proposal.kind)
     }
+    @Test fun supportsRomanianSequentialCommand() {
+        val plan = XilonActionPlanner.plan("deschide setările și apoi volum la 30%")
+        assertEquals(2, plan?.steps?.size)
+    }
+
+    @Test fun youtubeAndVolumeCanBePlannedTogether() {
+        val plan = XilonActionPlanner.plan("caută pe youtube: jazz relaxant; volum la 30%")
+        assertEquals(XilonActions.Kind.YOUTUBE_SEARCH, plan?.steps?.first()?.proposal?.kind)
+        assertEquals(XilonActions.Kind.SET_VOLUME, plan?.steps?.last()?.proposal?.kind)
+    }
 }
