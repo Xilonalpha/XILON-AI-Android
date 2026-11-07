@@ -212,6 +212,7 @@ private fun InstalledModelsScreen() {
     var revision by remember { mutableIntStateOf(0) }
     var confirmDelete by remember { mutableStateOf<String?>(null) }
     var activeModel by remember { mutableStateOf("") }
+    var chatHistory by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
     var prompt by remember { mutableStateOf("") }
     var response by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
@@ -224,13 +225,30 @@ private fun InstalledModelsScreen() {
         OutlinedTextField(value = prompt, onValueChange = { prompt = it }, label = { Text("Mesaj") }, modifier = Modifier.fillMaxWidth())
         Button(enabled = !busy && prompt.isNotBlank(), onClick = {
             busy = true
+            val submitted = prompt
+            val conversation = buildString {
+                append("You are a helpful assistant.\\n")
+                chatHistory.takeLast(4).forEach { (q, a) -> append("User: ").append(q).append("\\nAssistant: ").append(a).append("\\n") }
+                append("User: ").append(submitted).append("\\nAssistant:")
+            }
             thread(name = "local-inference") {
-                val answer = runCatching { LocalLlama.generate(prompt, 128) }.getOrElse { "Eroare: ${it.message}" }
-                (context as ComponentActivity).runOnUiThread { response = answer; busy = false }
+                val result = runCatching { LocalLlama.generate(conversation, 128) }
+                (context as ComponentActivity).runOnUiThread {
+                    response = result.getOrElse { "Eroare: ${it.message}" }
+                    if (result.isSuccess) chatHistory = chatHistory + (submitted to response)
+                    busy = false
+                }
             }
         }) { Text("Generează offline") }
         if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
         Text(response)
+        if (chatHistory.isNotEmpty()) {
+            Text("Istoric conversație", style = MaterialTheme.typography.titleMedium)
+            chatHistory.takeLast(6).forEach { (question, answer) ->
+                Text("Tu: $question")
+                Text("AI: $answer")
+            }
+        }
     }
     if (models.isEmpty()) {
         Text("Niciun model instalat. Deschide fila Modele pentru descărcare.")
@@ -251,6 +269,7 @@ private fun InstalledModelsScreen() {
                             val loaded = runCatching { LocalLlama.loadModel(model) }.getOrDefault(false)
                             (context as ComponentActivity).runOnUiThread {
                                 activeModel = if (loaded) model.name else ""
+                                chatHistory = emptyList()
                                 response = if (loaded) "Model încărcat. Poți trimite un mesaj." else "Nu s-a putut încărca modelul."
                                 busy = false
                             }
@@ -268,6 +287,11 @@ private fun InstalledModelsScreen() {
             text = { Text("Ștergi definitiv fișierul $filename de pe telefon?") },
             confirmButton = {
                 TextButton(onClick = {
+                    if (filename == activeModel) {
+                        LocalLlama.unload()
+                        activeModel = ""
+                        chatHistory = emptyList()
+                    }
                     InstalledModels.delete(context, filename)
                     confirmDelete = null
                     revision++
