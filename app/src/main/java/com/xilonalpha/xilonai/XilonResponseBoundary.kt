@@ -13,7 +13,14 @@ object XilonResponseBoundary {
         "[INST]", "[/INST]", "</s>", "<s>"
     )
     fun clean(output: String): String {
-        val end = markers.map { output.indexOf(it) }.filter { it >= 0 }.minOrNull()
-        return (if (end == null) output else output.substring(0, end)).trim()
+        // Hide incomplete reasoning during streaming; expose only the final answer.
+        val reasoningStart = output.indexOf("<think>")
+        val visible = if (reasoningStart >= 0) {
+            val reasoningEnd = output.indexOf("</think>", reasoningStart + 7)
+            if (reasoningEnd < 0) return ""
+            output.removeRange(reasoningStart, reasoningEnd + 8)
+        } else output
+        val end = markers.map { visible.indexOf(it) }.filter { it >= 0 }.minOrNull()
+        return (if (end == null) visible else visible.substring(0, end)).trim()
     }
 }
