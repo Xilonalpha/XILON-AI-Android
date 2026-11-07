@@ -340,6 +340,7 @@ private fun InstalledModelsScreen() {
     var activeModel by remember { mutableStateOf("") }
     var chatHistory by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
     var prompt by remember { mutableStateOf("") }
+    var pendingPrompt by remember { mutableStateOf<String?>(null) }
     var maxResponseTokens by remember { mutableIntStateOf(512) }
     var response by remember { mutableStateOf("") }
     var htmlExportStatus by remember { mutableStateOf("") }
@@ -535,8 +536,8 @@ private fun InstalledModelsScreen() {
             XilonChatBubble(question, isUser = true)
             XilonChatBubble(answer, isUser = false)
         }
-        if (busy && prompt.isNotBlank()) {
-            XilonChatBubble(prompt, isUser = true)
+        if (busy && pendingPrompt != null) {
+            XilonChatBubble(pendingPrompt!!, isUser = true)
         }
         if (response.isNotBlank() && (busy || chatHistory.lastOrNull()?.second != response)) {
             XilonChatBubble(response, isUser = false)
@@ -865,6 +866,8 @@ private fun InstalledModelsScreen() {
             busy = true
             response = ""
             val submitted = prompt
+            pendingPrompt = submitted
+            prompt = ""
             val completeHistorySnapshot = chatHistory
             val recentHistory = completeHistorySnapshot.takeLast(4)
             val recalledHistory = LocalMemoryRecall.recall(completeHistorySnapshot, submitted)
@@ -943,11 +946,13 @@ private fun InstalledModelsScreen() {
                         prompt = ""
                         if (saved?.isFailure == true) response += "\\nAtenție: istoricul nu a putut fi salvat local."
                     }
+                    pendingPrompt = null
                     busy = false
                 }
                 } catch (error: Exception) {
                     (context as ComponentActivity).runOnUiThread {
                         response = "Eroare la generarea offline: ${error.message ?: error.javaClass.simpleName}"
+                        pendingPrompt = null
                         busy = false
                     }
                 }
