@@ -3,6 +3,7 @@ package com.xilonalpha.xilonai
 import android.annotation.SuppressLint
 import android.webkit.WebResourceRequest
 import org.json.JSONObject
+import android.util.Base64
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -18,21 +19,25 @@ import java.io.ByteArrayInputStream
  */
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-fun XilonHtmlPreview(html: String, onSceneObj: ((String?, String?) -> Unit)? = null) {
+fun XilonHtmlPreview(html: String, onSceneGlb: ((ByteArray?, String?) -> Unit)? = null) {
     AndroidView(
         modifier = Modifier.fillMaxSize(),
         factory = { context ->
             WebView(context).apply {
                 settings.javaScriptEnabled = true
                 setOnLongClickListener {
-                    if (onSceneObj != null) {
-                        evaluateJavascript(XilonSceneObj.javascript) { encoded ->
+                    if (onSceneGlb != null) {
+                        evaluateJavascript(XilonSceneGlb.javascript) { encoded ->
                             runCatching {
                                 val decoded = org.json.JSONTokener(encoded).nextValue() as String
                                 val payload = JSONObject(decoded)
-                                onSceneObj(payload.optString("obj").takeIf { it.isNotBlank() },
-                                    payload.optString("error").takeIf { it.isNotBlank() })
-                            }.onFailure { onSceneObj(null, "Nu pot citi geometria scenei: ${it.message}") }
+                                val error = payload.optString("error")
+                                val base64 = payload.optString("glb")
+                                if (base64.isNotBlank()) {
+                                    require(base64.length <= 12_000_000) { "GLB prea mare pentru transfer." }
+                                    onSceneGlb(Base64.decode(base64, Base64.DEFAULT), null)
+                                } else onSceneGlb(null, error.ifBlank { "Export GLB indisponibil" })
+                            }.onFailure { onSceneGlb(null, "Export GLB eșuat: ${it.message}") }
                         }
                         true
                     } else false
@@ -61,6 +66,12 @@ fun XilonHtmlPreview(html: String, onSceneObj: ((String?, String?) -> Unit)? = n
                             return WebResourceResponse(
                                 "application/javascript", "UTF-8",
                                 context.assets.open("three/three-module-adapter.js")
+                            )
+                        }
+                        if (request?.url?.toString() == "https://xilon-preview.invalid/GLTFExporter.js") {
+                            return WebResourceResponse(
+                                "application/javascript", "UTF-8",
+                                context.assets.open("three/GLTFExporter.js")
                             )
                         }
                         return WebResourceResponse(
