@@ -538,6 +538,11 @@ private fun InstalledModelsScreen() {
         if (response.isNotBlank() && (busy || chatHistory.lastOrNull()?.second != response)) {
             XilonChatBubble(response, isUser = false)
         }
+        var show3dTools by remember { mutableStateOf(false) }
+        TextButton(onClick = { show3dTools = !show3dTools }) {
+            Text(if (show3dTools) "Ascunde instrumentele 3D" else "Instrumente 3D și export")
+        }
+        if (show3dTools) {
         OutlinedButton(onClick = {
             previewHtml = XilonOffline3dDemo.html
         }) { Text("Testează cubul 3D offline") }
@@ -583,6 +588,7 @@ private fun InstalledModelsScreen() {
             style = MaterialTheme.typography.bodySmall)
         if (htmlExportStatus.isNotBlank()) Text(htmlExportStatus,
             style = MaterialTheme.typography.bodySmall)
+        }
         if (busy && loadingModel == null && response.isBlank()) {
             Text("XILON AI pregătește răspunsul…",
                 style = MaterialTheme.typography.bodySmall)
