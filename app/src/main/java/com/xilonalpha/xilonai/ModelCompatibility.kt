@@ -14,7 +14,8 @@ data class GgufCandidate(
     val sizeBytes: Long,
     val estimatedRequiredRamBytes: Long,
     val status: CompatibilityStatus,
-    val reason: String
+    val reason: String,
+    val expectedSha256: String?
 )
 
 enum class CompatibilityStatus { ESTIMATED, TOO_LARGE, UNKNOWN }
@@ -60,7 +61,8 @@ object ModelCompatibility {
                 CompatibilityStatus.TOO_LARGE -> "64-bit ABI, free storage or conservative RAM budget insufficient"
                 CompatibilityStatus.ESTIMATED -> "Resource estimate only; runtime architecture not verified"
             }
-            GgufCandidate(filename, size, estimated, status, reason)
+            GgufCandidate(filename, size, estimated, status, reason,
+                lfs?.optString("oid")?.removePrefix("sha256:")?.takeIf { it.matches(Regex("[a-fA-F0-9]{64}")) })
         }.sortedWith(compareBy({ it.status != CompatibilityStatus.ESTIMATED }, { it.sizeBytes.takeIf { n -> n > 0 } ?: Long.MAX_VALUE }))
     }
 
