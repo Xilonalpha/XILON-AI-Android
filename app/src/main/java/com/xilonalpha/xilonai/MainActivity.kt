@@ -443,7 +443,7 @@ private fun InstalledModelsScreen() {
     var nativeHeapMiB by remember { mutableStateOf<Double?>(null) }
     var importBusy by remember { mutableStateOf(false) }
     var importMessage by remember { mutableStateOf("") }
-    var showModelManager by remember { mutableStateOf(true) }
+    var showModelManager by remember { mutableStateOf(false) }
     var showChatSettings by remember { mutableStateOf(false) }
     val microphonePermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -886,14 +886,23 @@ private fun InstalledModelsScreen() {
                     },
                     countTokens = { text -> LocalLlama.countTokens(text) }
                 )
+                var lastUiUpdateAt = 0L
                 val result = if (conversation == null)
                     Result.failure<String>(IllegalArgumentException("Mesajul depășește contextul disponibil."))
                 else runCatching {
                     LocalLlama.generateStreaming(conversation, outputLimit) { partial ->
-                        (context as ComponentActivity).runOnUiThread {
-                            rawCharacters = partial.length
-                            response = XilonResponseBoundary.clean(partial)
-                            generatedCharacters = response.length
+                        // Avoid flooding Compose's main thread with one full-string
+                        // update per decoded token on slower Android devices.
+                        val now = android.os.SystemClock.elapsedRealtime()
+                        if (now - lastUiUpdateAt >= 150L || stopRequested.get()) {
+                            lastUiUpdateAt = now
+                            val visible = XilonResponseBoundary.clean(partial)
+                            val rawLength = partial.length
+                            (context as ComponentActivity).runOnUiThread {
+                                rawCharacters = rawLength
+                                if (response != visible) response = visible
+                                generatedCharacters = visible.length
+                            }
                         }
                     }
                 }
@@ -915,6 +924,7 @@ private fun InstalledModelsScreen() {
                     nativeTimings = timings
                     currentPssMiB = memoryAfter.totalPssKiB / 1024.0
                     nativeHeapMiB = memoryAfter.nativeHeapKiB / 1024.0
+                    rawCharacters = maxOf(rawCharacters, cleanedResult.getOrNull()?.length ?: 0)
                     response = if (stopRequested.get()) "Generare oprită. Text parțial:\\n" + cleanedResult.getOrDefault(response) else cleanedResult.getOrElse { "Eroare: ${it.message}" }
                     if (completed) {
                         chatHistory = nextHistory
