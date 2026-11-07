@@ -8,7 +8,7 @@ object XilonActionPlanner {
     data class Step(val proposal: XilonActions.Proposal, val argument: String)
     data class Plan(val steps: List<Step>, val requiresConfirmation: Boolean = true)
 
-    private val split = Regex("""(?i)\s*(?:[;,]|\b(?:și apoi|iar apoi|apoi|then)\b)\s*""")
+    private val split = Regex("""(?i)\s*(?:;|,\s*(?:și apoi|iar apoi|apoi|then)\b|\b(?:și apoi|iar apoi|apoi|then)\b)\s*""")
     private val volume = Regex("(?i)(?:volum(?:ul)?(?: media)?(?: la)?|volume(?: to)?)\\s*(\\d{1,3})\\s*%")
 
     fun plan(command: String): Plan? {
