@@ -4,6 +4,7 @@ import android.app.ActivityManager
 import android.os.Build
 import android.os.Bundle
 import android.os.StatFs
+import java.util.concurrent.atomic.AtomicBoolean
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.clickable
@@ -70,6 +71,7 @@ private fun ModelExplorer() {
     var downloadStatus by remember { mutableStateOf("") }
     var downloadProgress by remember { mutableFloatStateOf(0f) }
     var downloading by remember { mutableStateOf(false) }
+    val cancelDownload = remember { AtomicBoolean(false) }
     val context = LocalContext.current
     fun refresh() {
         if (loading) return
@@ -145,7 +147,10 @@ private fun ModelExplorer() {
                         if (inspecting) CircularProgressIndicator()
                         candidateError?.let { Text("Eroare: $it") }
                         if (!inspecting && candidates.isEmpty() && candidateError == null) Text("Niciun fișier GGUF identificat.")
-                        if (downloading) LinearProgressIndicator(progress = { downloadProgress }, modifier = Modifier.fillMaxWidth())
+                        if (downloading) {
+                            LinearProgressIndicator(progress = { downloadProgress }, modifier = Modifier.fillMaxWidth())
+                            OutlinedButton(onClick = { cancelDownload.set(true); downloadStatus = "Anulare solicitată..." }) { Text("Anulează descărcarea") }
+                        }
                         if (downloadStatus.isNotBlank()) Text(downloadStatus, style = MaterialTheme.typography.bodySmall)
                         candidates.take(12).forEach { file ->
                             HorizontalDivider()
@@ -155,6 +160,7 @@ private fun ModelExplorer() {
                             if (file.status == CompatibilityStatus.ESTIMATED && file.sizeBytes > 0) {
                                 Button(enabled = !downloading, onClick = {
                                     downloading = true
+                                    cancelDownload.set(false)
                                     downloadStatus = "Pornire descărcare..."
                                     downloadProgress = 0f
                                     thread(name = "gguf-download") {
@@ -164,7 +170,7 @@ private fun ModelExplorer() {
                                                     downloadProgress = current.toFloat() / total.toFloat()
                                                     downloadStatus = "$current / $total bytes"
                                                 }
-                                            })
+                                            }, isCancelled = { cancelDownload.get() })
                                             (context as ComponentActivity).runOnUiThread {
                                                 downloadStatus = "Salvat: ${result.file.name} (SHA-256: ${result.sha256.take(12)}...)"
                                                 downloading = false
