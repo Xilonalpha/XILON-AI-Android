@@ -40,6 +40,8 @@ object LocalModelImporter {
             var total = 0L
             val magic = ByteArray(4)
             var magicLength = 0
+            val header = ByteArray(8)
+            var headerLength = 0
             var lastReported = 0L
             resolver.openInputStream(uri)?.use { source ->
                 FileOutputStream(temp).use { output ->
@@ -48,6 +50,11 @@ object LocalModelImporter {
                         val n = source.read(buffer)
                         if (n < 0) break
                         if (n == 0) continue
+                        if (headerLength < 8) {
+                            val copy = minOf(8 - headerLength, n)
+                            System.arraycopy(buffer, 0, header, headerLength, copy)
+                            headerLength += copy
+                        }
                         val needed = 4 - magicLength
                         if (needed > 0) {
                             val copy = minOf(needed, n)
@@ -71,7 +78,12 @@ object LocalModelImporter {
                 }
             } ?: throw IllegalArgumentException("Nu se poate deschide fișierul selectat.")
             onProgress(total, declaredSize)
-            require(total >= 32) { "Fișier GGUF incomplet." }
+            require(total >= 32 && headerLength == 8) { "Fișier GGUF incomplet." }
+            val version = (header[4].toInt() and 255) or
+                ((header[5].toInt() and 255) shl 8) or
+                ((header[6].toInt() and 255) shl 16) or
+                ((header[7].toInt() and 255) shl 24)
+            require(version in 2..3) { "Versiune GGUF nesuportată: $version" }
             if (declaredSize != null) {
                 require(total == declaredSize) { "Copiere incompletă: $total din $declaredSize octeți." }
             }
