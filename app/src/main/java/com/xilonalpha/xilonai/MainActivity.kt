@@ -495,7 +495,6 @@ private fun InstalledModelsScreen() {
         XilonMediaObserver(context) { mediaSnapshot = it }
     }
     DisposableEffect(mediaObserver) { onDispose { mediaObserver.close() } }
-    LaunchedEffect(prompt) { actionFeedback = "" }
     val taskDecision = remember(prompt) { XilonCore.classify(prompt) }
     val suggestedModel = remember(revision, prompt) {
         XilonCore.suggestModel(taskDecision.task, InstalledModels.list(context).map { it.name })
