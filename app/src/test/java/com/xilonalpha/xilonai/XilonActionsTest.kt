@@ -70,6 +70,11 @@ class XilonActionsTest {
             XilonActions.propose("trimite pe whatsapp: Salut!")?.kind)
         assertNull(XilonActions.propose("Cum pot trimite pe WhatsApp un mesaj?"))
     }
+    @Test fun questionMarkInExplicitWhatsappDraftIsMessageContent() {
+        assertEquals(XilonActions.Kind.SHARE_MESSAGE,
+            XilonActions.propose("trimite pe whatsapp: Salut, ce faci?")?.kind)
+        assertNull(XilonActions.propose("Cum trimit pe WhatsApp: Salut?"))
+    }
     @Test fun youtubeSearchNeedsExplicitCommand() {
         assertEquals(XilonActions.Kind.YOUTUBE_SEARCH,
             XilonActions.propose("caută pe youtube: jazz relaxant")?.kind)
