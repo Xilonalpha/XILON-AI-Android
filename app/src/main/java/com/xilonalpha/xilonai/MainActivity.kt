@@ -529,6 +529,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
 
+    if (!toolsVisible) {
     if (activeModel.isNotBlank()) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -537,9 +538,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            TextButton(onClick = { showChatSettings = !showChatSettings }) {
-                Text("Opțiuni")
-            }
+
         }
         if (chatHistory.isEmpty() && response.isBlank() && !busy) {
             Column(Modifier.fillMaxWidth().padding(vertical = 36.dp),
@@ -574,6 +573,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
                 Text("Deschide scena 3D generată")
             }
         }
+    }
         if (showAdvancedTools) {
         var show3dTools by remember { mutableStateOf(false) }
         LaunchedEffect(taskDecision.task) {
