@@ -12,6 +12,19 @@ class XilonActionPlannerTest {
         assertEquals(XilonActions.Kind.SET_VOLUME, plan.steps[1].proposal.kind)
     }
 
+    @Test fun explicitVolumeCommandsWorkWithoutSecondConfirmation() {
+        val plan = XilonActionPlanner.plan("Setează volumul la 40%")
+        assertEquals(XilonActions.Kind.SET_VOLUME, plan?.steps?.single()?.proposal?.kind)
+        assertEquals(XilonActions.Kind.SET_VOLUME,
+            XilonActionPlanner.plan("volum la 30%")?.steps?.single()?.proposal?.kind)
+    }
+
+    @Test fun questionsCannotBecomeAutonomousVolumeActions() {
+        assertNull(XilonActionPlanner.plan("Cum setez volumul la 40%?"))
+        assertNull(XilonActionPlanner.plan("Poți explica volumul la 40%?"))
+        assertNull(XilonActionPlanner.plan("setează volumul la 150%"))
+    }
+
     @Test fun rejectsUnknownStepsRatherThanExecutingPartialPlan() {
         assertNull(XilonActionPlanner.plan("deschide setările; șterge toate fișierele"))
     }
