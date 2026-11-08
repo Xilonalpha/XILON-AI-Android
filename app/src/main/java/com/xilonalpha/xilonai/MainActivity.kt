@@ -639,7 +639,7 @@ private fun InstalledModelsScreen() {
                 style = MaterialTheme.typography.bodySmall)
         }
     }
-    if (activeModel.isNotBlank()) {
+    if (showAdvancedTools && activeModel.isNotBlank()) {
 
         var showDiagnostics by remember { mutableStateOf(false) }
         TextButton(onClick = { showDiagnostics = !showDiagnostics }) {
@@ -706,6 +706,7 @@ private fun InstalledModelsScreen() {
         }
         if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
     }
+    if (showAdvancedTools) {
     HorizontalDivider()
     OutlinedButton(
         modifier = Modifier.fillMaxWidth(),
@@ -780,6 +781,7 @@ private fun InstalledModelsScreen() {
     }
     }
         }
+    }
         // The voice/action composer is available even without a loaded GGUF model.
             Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 4.dp) {
                 Column(
