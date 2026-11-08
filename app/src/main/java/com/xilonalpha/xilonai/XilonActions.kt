@@ -40,7 +40,7 @@ object XilonActions {
         val q = text.trim().lowercase(java.util.Locale.ROOT)
         // Questions and explanations must never trigger an Android side effect.
         // Only explicitly phrased commands are eligible for direct dispatch.
-        if (q.endsWith("?") || q.startsWith("cum ") || q.startsWith("de ce ") ||
+        if ((q.endsWith("?") && !listOf("trimite pe whatsapp:", "trimite prin whatsapp:", "share on whatsapp:", "mesaj whatsapp:", "caută pe youtube:", "cauta pe youtube:", "youtube search:").any(q::startsWith)) || q.startsWith("cum ") || q.startsWith("de ce ") ||
             q.startsWith("explică") || q.startsWith("explica") ||
             q.startsWith("poți explica") || q.startsWith("poti explica")) return null
         return when {
