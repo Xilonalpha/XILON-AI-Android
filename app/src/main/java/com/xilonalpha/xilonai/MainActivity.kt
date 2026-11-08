@@ -534,16 +534,10 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
         }
     }
     if (activeModel.isNotBlank()) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text("XILON AI", style = MaterialTheme.typography.titleMedium)
-                Text("AI local · " + activeModel.take(32),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-
-        }
-        if (chatHistory.isEmpty() && response.isBlank() && !busy) {
+        Text("Model activ · " + activeModel.take(38),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (chatHistory.isEmpty() && response.isBlank() && !busy && pendingPrompt == null) {
             Column(Modifier.fillMaxWidth().padding(vertical = 36.dp),
                 horizontalAlignment = Alignment.CenterHorizontally) {
                 Icon(Icons.Filled.AutoAwesome, contentDescription = null,
