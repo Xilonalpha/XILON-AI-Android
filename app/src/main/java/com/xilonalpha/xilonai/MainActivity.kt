@@ -465,6 +465,7 @@ private fun InstalledModelsScreen() {
     var importMessage by remember { mutableStateOf("") }
     var showModelManager by remember { mutableStateOf(false) }
     var showChatSettings by remember { mutableStateOf(false) }
+    var showGenerationDetails by remember { mutableStateOf(false) }
     val microphonePermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -987,28 +988,23 @@ private fun InstalledModelsScreen() {
         }) { Text("Trimite  ↑") }
         if (busy && loadingModel == null) {
             val seconds = generationElapsedMs / 1000L
-            val phase = when {
-                generatedCharacters > 0 -> "Răspuns în curs"
-                rawCharacters > 0 -> "Modelul generează; răspunsul vizibil nu a început încă"
-                else -> "Pregătire și procesare prompt"
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("XILON generează · ${seconds / 60}m ${seconds % 60}s",
+                    style = MaterialTheme.typography.labelMedium)
+                TextButton(onClick = { showGenerationDetails = !showGenerationDetails }) {
+                    Text(if (showGenerationDetails) "Ascunde detalii" else "Detalii")
+                }
+                TextButton(onClick = { stopRequested.set(true); LocalLlama.requestStop() }) {
+                    Text("Oprește")
+                }
             }
-            Text("$phase · ${seconds / 60}m ${seconds % 60}s",
-                style = MaterialTheme.typography.labelMedium)
-            if (rawCharacters > 0) {
-                Text("Text brut: $rawCharacters caractere · Răspuns vizibil: $generatedCharacters caractere",
+            LinearProgressIndicator(Modifier.fillMaxWidth())
+            if (showGenerationDetails) {
+                Text("Text brut: $rawCharacters · Răspuns vizibil: $generatedCharacters",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            if (seconds >= 60 && generatedCharacters == 0) {
-                Text("Generarea durează mult fără răspuns vizibil. Poți opri și încerca un răspuns mai scurt.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            OutlinedButton(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { stopRequested.set(true); LocalLlama.requestStop() }
-            ) { Text("Oprește generarea") }
-            LinearProgressIndicator(Modifier.fillMaxWidth())
         }
                 }
             }
