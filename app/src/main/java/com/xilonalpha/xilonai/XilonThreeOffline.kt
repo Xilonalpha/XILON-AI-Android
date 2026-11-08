@@ -13,6 +13,24 @@ object XilonThreeOffline {
     )
     private val bareImport = Regex("""\bfrom\s*["']three["']""")
 
+    private val diagnostics = """
+<script>
+(function(){
+  function report(message) {
+    if (document.getElementById('xilon-preview-error')) return;
+    var panel = document.createElement('div');
+    panel.id = 'xilon-preview-error';
+    panel.style.cssText = 'position:fixed;left:8px;right:8px;bottom:8px;z-index:2147483647;background:#451c29;color:#fff;padding:12px;border-radius:8px;font:13px sans-serif;white-space:pre-wrap;max-height:45%;overflow:auto';
+    panel.textContent = 'Eroare previzualizare 3D: ' + String(message).slice(0,500);
+    (document.body || document.documentElement).appendChild(panel);
+  }
+  window.addEventListener('error', function(e){ report(e.message || 'JavaScript / resursă indisponibilă'); });
+  window.addEventListener('unhandledrejection', function(e){ report(e.reason && e.reason.message || e.reason || 'Modul JavaScript indisponibil'); });
+  document.addEventListener('webglcontextcreationerror', function(e){ report(e.statusMessage || 'WebGL indisponibil pe dispozitiv'); }, true);
+})();
+</script>
+""".trimIndent()
+
     fun prepare(html: String): String {
         var result = classicScript.replace(html) { match ->
             match.groupValues[1] + "https://xilon-preview.invalid/three.min.js" +
@@ -23,7 +41,7 @@ object XilonThreeOffline {
         }
         val usesModule = bareImport.containsMatchIn(result)
         val usesClassic = result.contains("https://xilon-preview.invalid/three.min.js")
-        if (!usesModule && !usesClassic) return result
+        if (!usesModule && !usesClassic) return injectDiagnostics(result)
 
         // Insert once, before user scripts. Import maps must precede module execution.
         val loader = buildString {
@@ -38,11 +56,17 @@ object XilonThreeOffline {
         if (usesClassic && !usesModule) {
             val script = Regex("""(?i)<script\b[^>]*\bsrc\s*=\s*["']https://xilon-preview\.invalid/three\.min\.js["'][^>]*>\s*</script>""")
             val found = script.find(result)
-            if (found != null) return result.replaceRange(found.range, found.value + loader)
+            if (found != null) return injectDiagnostics(result.replaceRange(found.range, found.value + loader))
         }
         val head = Regex("""(?i)<head\b[^>]*>""")
         val found = head.find(result)
-        return if (found != null) result.replaceRange(found.range, found.value + loader)
-            else loader + result
+        return injectDiagnostics(if (found != null) result.replaceRange(found.range, found.value + loader)
+            else loader + result)
     }
+    private fun injectDiagnostics(html: String): String {
+        val head = Regex("""(?i)<head\\b[^>]*>""").find(html)
+        return if (head != null) html.replaceRange(head.range, head.value + diagnostics)
+            else diagnostics + html
+    }
+
 }
