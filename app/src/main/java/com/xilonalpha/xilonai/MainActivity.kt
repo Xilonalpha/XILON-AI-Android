@@ -778,7 +778,8 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
     }
         }
     }
-        // The voice/action composer is available even without a loaded GGUF model.
+        // Media diagnostics and playback controls belong to the tools destination.
+        if (toolsVisible) {
             Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 4.dp) {
                 Column(
                     Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
@@ -832,6 +833,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
         }
                 }
             }
+        }
         }
         if (activeModel.isNotBlank()) {
             Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 4.dp) {
