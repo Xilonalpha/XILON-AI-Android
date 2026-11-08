@@ -107,34 +107,25 @@ private fun XilonHome() {
     Scaffold(containerColor = XilonDark) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             Column(
-                Modifier.fillMaxWidth().background(
-                    Brush.linearGradient(listOf(Color(0xFF4733A4), Color(0xFF1D315C), XilonDark))
-                ).padding(horizontal = 18.dp, vertical = 12.dp)
+                Modifier.fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surface)
+                    .padding(horizontal = 12.dp, vertical = 4.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     IconButton(onClick = { drawerScope.launch { drawerState.open() } }) {
-                        Icon(Icons.Filled.Menu, contentDescription = "Deschide meniul lateral", tint = Color.White)
+                        Icon(Icons.Filled.Menu, contentDescription = "Deschide meniul lateral")
                     }
-                    Surface(color = Color.White.copy(alpha = 0.14f), shape = RoundedCornerShape(16.dp)) {
-                        Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = Color(0xFF92F4F1),
-                            modifier = Modifier.padding(12.dp).size(28.dp))
+                    Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(12.dp)) {
+                        Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(8.dp).size(20.dp))
                     }
                     Column {
-                        Text("XILON AI", style = MaterialTheme.typography.headlineMedium, color = Color.White)
-                        Text("Inteligență locală. Fără server AI.", color = Color(0xFFD5D0FF),
+                        Text("XILON AI", style = MaterialTheme.typography.titleMedium)
+                        Text("Offline · pe dispozitiv", color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodySmall)
                     }
                 }
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    when (selected) {
-                        0 -> "Spațiul tău de conversație"
-                        1 -> "Descoperă modele AI"
-                        2 -> "Capabilitățile dispozitivului"
-                        else -> "Instrumente și setări"
-                    },
-                    style = MaterialTheme.typography.titleMedium, color = Color.White
-                )
+
             }
             // Keep chat composed while browsing tabs: loaded GGUF state and active
             // generation must not be forgotten when navigating away from Chat.
@@ -844,7 +835,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
         OutlinedTextField(
             value = prompt,
             onValueChange = { prompt = it },
-            placeholder = { Text("Întreabă XILON AI…") },
+            placeholder = { Text("Scrie un mesaj sau o comandă…") },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(28.dp),
             maxLines = 5
@@ -863,7 +854,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
                         voice.listen(onText = { prompt = it }, onStatus = { voiceStatus = it })
                     }.onFailure { voiceStatus = "Eroare voce: ${it.message}" }
                 } else microphonePermission.launch(Manifest.permission.RECORD_AUDIO)
-            }) { Text("🎙 Voce") }
+            }) { Text("🎙 Vorbește") }
             if (voiceStatus.isNotBlank()) {
                 Text(voiceStatus, style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.weight(1f))
@@ -1048,8 +1039,8 @@ private fun XilonChatBubble(message: String, isUser: Boolean) {
     ) {
         if (isUser) {
             Surface(
-                modifier = Modifier.fillMaxWidth(0.85f),
-                shape = RoundedCornerShape(22.dp),
+                modifier = Modifier.fillMaxWidth(0.88f),
+                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 6.dp),
                 color = MaterialTheme.colorScheme.primaryContainer
             ) {
                 Text(message, modifier = Modifier.padding(14.dp),
