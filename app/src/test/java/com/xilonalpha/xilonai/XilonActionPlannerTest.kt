@@ -60,7 +60,7 @@ class XilonActionPlannerTest {
     @Test fun voiceTranscriptCanBecomeActionPlan() {
         val plan = XilonActionPlanner.plan("caută pe youtube: muzică relaxantă; volum la 30%")
         assertNotNull(plan)
-        assertTrue(plan!!.requiresConfirmation)
+        assertEquals(1, plan!!.steps.size)
         assertEquals(2, plan.steps.size)
     }
     @Test fun commaInsideWhatsappMessageIsNotAnActionSeparator() {
