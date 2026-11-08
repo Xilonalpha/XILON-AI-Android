@@ -38,6 +38,11 @@ object XilonActions {
 
     fun propose(text: String): Proposal? {
         val q = text.trim().lowercase(java.util.Locale.ROOT)
+        // Questions and explanations must never trigger an Android side effect.
+        // Only explicitly phrased commands are eligible for direct dispatch.
+        if (q.endsWith("?") || q.startsWith("cum ") || q.startsWith("de ce ") ||
+            q.startsWith("explică") || q.startsWith("explica") ||
+            q.startsWith("poți explica") || q.startsWith("poti explica")) return null
         return when {
             requestedApp(q) != null ->
                 Proposal(Kind.OPEN_APP, "Deschide aplicația " + q.substringAfterLast(' '),
