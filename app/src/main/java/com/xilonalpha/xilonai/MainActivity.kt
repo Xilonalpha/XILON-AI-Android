@@ -826,7 +826,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
             }
         }
         }
-        if (activeModel.isNotBlank()) {
+        if (!toolsVisible) {
             Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 4.dp) {
                 Column(
                     Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
