@@ -4,6 +4,18 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class XilonResponseBoundaryTest {
+    @Test fun hidesUnfinishedReasoningButKeepsEarlierVisibleText() {
+        assertEquals("Răspuns", XilonResponseBoundary.clean("Răspuns<think>intern"))
+    }
+    @Test fun removesAllCompletedReasoningBlocks() {
+        assertEquals("Salut! Gata.", XilonResponseBoundary.clean(
+            "<think>primul</think>Salut! <think>al doilea</think>Gata."))
+    }
+    @Test fun hidesStreamingReasoningUntilClosingTag() {
+        assertEquals("", XilonResponseBoundary.clean("<think>analiză în curs"))
+        assertEquals("Rezultat", XilonResponseBoundary.clean(
+            "<think>analiză</think>Rezultat"))
+    }
     @Test fun stopsBeforeChatMlRoleLeak() {
         assertEquals("Salut!", XilonResponseBoundary.clean(
             "Salut!<|im_end|>\n<|im_start|>user\nAltă întrebare"))
