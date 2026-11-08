@@ -78,8 +78,8 @@ private fun XilonTheme(content: @Composable () -> Unit) {
 @Composable
 private fun XilonHome() {
     var selected by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Chat", "Modele", "Dispozitiv")
-    val icons = listOf(Icons.Filled.ChatBubbleOutline, Icons.Filled.Memory, Icons.Filled.PhoneAndroid)
+    val tabs = listOf("Chat", "Modele", "Dispozitiv", "Instrumente")
+    val icons = listOf(Icons.Filled.ChatBubbleOutline, Icons.Filled.Memory, Icons.Filled.PhoneAndroid, Icons.Filled.Build)
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val drawerScope = rememberCoroutineScope()
     ModalNavigationDrawer(
@@ -129,7 +129,8 @@ private fun XilonHome() {
                     when (selected) {
                         0 -> "Spațiul tău de conversație"
                         1 -> "Descoperă modele AI"
-                        else -> "Capabilitățile dispozitivului"
+                        2 -> "Capabilitățile dispozitivului"
+                        else -> "Instrumente și setări"
                     },
                     style = MaterialTheme.typography.titleMedium, color = Color.White
                 )
@@ -137,8 +138,8 @@ private fun XilonHome() {
             // Keep chat composed while browsing tabs: loaded GGUF state and active
             // generation must not be forgotten when navigating away from Chat.
             Box(Modifier.fillMaxSize()) {
-                Box(if (selected == 0) Modifier.fillMaxSize() else Modifier.size(0.dp)) {
-                    InstalledModelsScreen()
+                Box(if (selected == 0 || selected == 3) Modifier.fillMaxSize() else Modifier.size(0.dp)) {
+                    InstalledModelsScreen(toolsVisible = selected == 3)
                 }
                 if (selected == 1) {
                     Column(
@@ -345,7 +346,7 @@ private fun DeviceInfo() {
 }
 
 @Composable
-private fun InstalledModelsScreen() {
+private fun InstalledModelsScreen(toolsVisible: Boolean) {
     val context = LocalContext.current
     var speechStatus by remember { mutableStateOf("") }
     val speech = remember(context) { XilonSpeech(context) { speechStatus = it } }
@@ -466,7 +467,7 @@ private fun InstalledModelsScreen() {
     var showModelManager by remember { mutableStateOf(false) }
     var showChatSettings by remember { mutableStateOf(false) }
     var showGenerationDetails by remember { mutableStateOf(false) }
-    var showAdvancedTools by remember { mutableStateOf(false) }
+    val showAdvancedTools = toolsVisible
     val microphonePermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -521,12 +522,6 @@ private fun InstalledModelsScreen() {
     }
     val models = remember(revision) { InstalledModels.list(context) }
     Column(Modifier.fillMaxSize().imePadding()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp),
-            horizontalArrangement = Arrangement.End) {
-            TextButton(onClick = { showAdvancedTools = !showAdvancedTools }) {
-                Text(if (showAdvancedTools) "Ascunde instrumentele" else "Instrumente")
-            }
-        }
         Column(
             Modifier.weight(1f).fillMaxWidth().verticalScroll(chatScrollState)
                 .padding(horizontal = 16.dp, vertical = 8.dp),
