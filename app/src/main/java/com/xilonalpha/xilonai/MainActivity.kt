@@ -542,6 +542,16 @@ private fun InstalledModelsScreen() {
         if (response.isNotBlank() && (busy || chatHistory.lastOrNull()?.second != response)) {
             XilonChatBubble(response, isUser = false)
         }
+        // Surface the generated scene directly in chat, not only inside hidden 3D tools.
+        val readySceneHtml = if (!busy) {
+            XilonHtmlExport.extract(response)
+                ?: chatHistory.lastOrNull()?.second?.let { XilonHtmlExport.extract(it) }
+        } else null
+        if (readySceneHtml != null) {
+            Button(onClick = { previewHtml = readySceneHtml }) {
+                Text("Deschide scena 3D generată")
+            }
+        }
         var show3dTools by remember { mutableStateOf(false) }
         TextButton(onClick = { show3dTools = !show3dTools }) {
             Text(if (show3dTools) "Ascunde instrumentele 3D" else "Instrumente 3D și export")
