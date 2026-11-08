@@ -41,7 +41,7 @@ object XilonActions {
         return when {
             requestedApp(q) != null ->
                 Proposal(Kind.OPEN_APP, "Deschide aplicația " + q.substringAfterLast(' '),
-                    "Lansează aplicația instalată după confirmare; nu execută comenzi în interiorul ei.")
+                    "Lansează aplicația instalată la trimiterea comenzii; nu execută comenzi în interiorul ei.")
             listOf("activează controlul media", "activeaza controlul media",
                 "permisiune control media", "enable media control")
                 .any(q::contains) ->
@@ -76,7 +76,7 @@ object XilonActions {
                 Proposal(Kind.PREVIOUS_TRACK, "Melodia anterioară", "Solicită redarea piesei anterioare.")
             Regex("""^(?:setează|seteaza|set|pune|reglează|regleaza)\s+(?:volumul|volum|volume)(?:\s+(?:la|to))?\s+\d{1,3}\s*%$""").matches(q) ->
                 Proposal(Kind.SET_VOLUME, "Setează volumul media",
-                    "Reglează volumul media la procentul cerut, după confirmare.")
+                    "Reglează volumul media la procentul cerut.")
             listOf("volum mai tare", "mărește volumul", "mareste volumul", "volume up")
                 .any(q::contains) ->
                 Proposal(Kind.VOLUME_UP, "Mărește volumul", "Crește volumul media cu o treaptă.")
