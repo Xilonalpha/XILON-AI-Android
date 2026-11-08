@@ -8,6 +8,14 @@ class XilonActionsTest {
         val proposal = XilonActions.propose("Te rog deschide setările")
         assertEquals(XilonActions.Kind.SETTINGS, proposal?.kind)
     }
+    @Test fun questionsContainingDeviceCommandsDoNotExecute() {
+        assertNull(XilonActions.propose("Cum deschide setările Android?"))
+        assertNull(XilonActions.propose("Explică cum mărește volumul telefonul"))
+        assertNull(XilonActions.propose("Poți explica pauză muzica?"))
+        assertNull(XilonActions.propose("deschide whatsapp?"))
+        assertEquals(XilonActions.Kind.OPEN_APP,
+            XilonActions.propose("deschide whatsapp")?.kind)
+    }
     @Test fun ordinaryChatDoesNotTriggerActions() {
         assertNull(XilonActions.propose("Explică-mi cum funcționează setările Android"))
     }
