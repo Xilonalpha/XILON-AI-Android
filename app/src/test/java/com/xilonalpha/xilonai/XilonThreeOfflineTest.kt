@@ -14,7 +14,9 @@ class XilonThreeOfflineTest {
 
     @Test fun doesNotRewriteArbitraryScripts() {
         val html = "<script src=\"https://example.com/tracker.js\"></script>"
-        assertEquals(html, XilonThreeOffline.prepare(html))
+        val prepared = XilonThreeOffline.prepare(html)
+        assertTrue(prepared.contains(html))
+        assertTrue(prepared.contains("xilon-preview-error"))
     }
 
     @Test fun demoIncludesLocalThree() {
