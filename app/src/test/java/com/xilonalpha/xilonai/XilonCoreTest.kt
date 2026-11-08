@@ -7,6 +7,16 @@ class XilonCoreTest {
     @Test fun codeTaskIsDetectedOffline() {
         assertEquals(XilonCore.Task.CODE, XilonCore.classify("Scrie cod Kotlin pentru Android").task)
     }
+    @Test fun humanFace3dRequestIsClassifiedLocally() {
+        assertEquals(XilonCore.Task.THREE_D,
+            XilonCore.classify("generează un chip uman în 3D").task)
+        assertEquals(XilonCore.Task.THREE_D,
+            XilonCore.classify("creează un model tridimensional").task)
+    }
+    @Test fun normalFaceQuestionDoesNotTrigger3dGeneration() {
+        assertEquals(XilonCore.Task.CHAT,
+            XilonCore.classify("Ce este un chip uman?").task)
+    }
     @Test fun translationTaskIsDetectedOffline() {
         assertEquals(XilonCore.Task.TRANSLATION, XilonCore.classify("Tradu textul în română").task)
     }
