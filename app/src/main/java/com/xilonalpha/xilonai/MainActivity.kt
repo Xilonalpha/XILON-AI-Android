@@ -497,8 +497,8 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
         }
     }
     val chatScrollState = rememberScrollState()
-    LaunchedEffect(chatHistory.size, response.length, activeModel) {
-        if (activeModel.isNotBlank()) chatScrollState.scrollTo(chatScrollState.maxValue)
+    LaunchedEffect(chatHistory.size, response.length, activeModel, pendingPrompt, actionFeedback) {
+        if (chatScrollState.maxValue > 0) chatScrollState.scrollTo(chatScrollState.maxValue)
     }
     val actionPlan = remember(prompt) { XilonActionPlanner.plan(prompt) }
     var actionFeedback by remember { mutableStateOf("") }
@@ -521,6 +521,18 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
         ) {
 
     if (!toolsVisible) {
+    if (activeModel.isBlank()) {
+        Text("Comenzi Android disponibile fără model AI încărcat.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (actionFeedback.isNotBlank()) {
+            Surface(shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant) {
+                Text(actionFeedback, modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+    }
     if (activeModel.isNotBlank()) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -621,7 +633,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
             style = MaterialTheme.typography.bodySmall)
         }
         }
-        if (busy && loadingModel == null && response.isBlank()) {
+        if (!toolsVisible && busy && loadingModel == null && response.isBlank()) {
             Text("XILON AI pregătește răspunsul…",
                 style = MaterialTheme.typography.bodySmall)
         }
