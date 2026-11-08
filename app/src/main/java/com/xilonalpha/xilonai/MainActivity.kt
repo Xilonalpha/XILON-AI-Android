@@ -898,7 +898,7 @@ private fun InstalledModelsScreen() {
                         val roles = mutableListOf("system")
                         val systemInstruction = if (submittedTask == XilonCore.Task.THREE_D)
                             "You are XILON AI, an offline 3D coding assistant. For a 3D creation request, output a complete standalone HTML document with a Three.js scene using JavaScript and procedural geometry. Include camera, lights, controls, and an animation loop. Use locally available Three.js; do not import remote scripts, models, textures, or network resources. For a human face, clearly label the result as a stylized procedural approximation, not a photorealistic scan. Output code rather than promising a rendered model."
-                        else "You are a helpful assistant."
+                        else "You are XILON AI, a helpful offline assistant. Give the final answer directly and concisely. If your chat template supports optional reasoning, prefer the non-thinking mode for ordinary requests. Never include internal reasoning or role delimiters in the final answer."
                         val contents = mutableListOf(systemInstruction)
                         turns.forEach { (question, answer) ->
                             roles.add("user"); contents.add(question)
