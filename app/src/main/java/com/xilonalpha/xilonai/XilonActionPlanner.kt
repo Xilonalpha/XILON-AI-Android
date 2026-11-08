@@ -9,7 +9,10 @@ object XilonActionPlanner {
     data class Plan(val steps: List<Step>)
 
     private val split = Regex("""(?i)\s*(?:;|,\s*(?:și apoi|iar apoi|apoi|then)\b|\b(?:și apoi|iar apoi|apoi|then)\b)\s*""")
-    private val volume = Regex("(?i)(?:volum(?:ul)?(?: media)?(?: la)?|volume(?: to)?)\\s*(\\d{1,3})\\s*%")
+    // Match a complete imperative command, not a question that happens to mention volume.
+    private val volume = Regex(
+        """(?i)^(?:(?:setează|seteaza|set|pune|reglează|regleaza)\\s+)?(?:volum(?:ul)?(?: media)?|volume)(?:\\s+(?:la|to))?\\s+(\\d{1,3})\\s*%$"""
+    )
 
     fun plan(command: String): Plan? {
         if (command.length > 1000) return null
