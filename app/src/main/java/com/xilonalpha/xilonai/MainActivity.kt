@@ -466,6 +466,7 @@ private fun InstalledModelsScreen() {
     var showModelManager by remember { mutableStateOf(false) }
     var showChatSettings by remember { mutableStateOf(false) }
     var showGenerationDetails by remember { mutableStateOf(false) }
+    var showAdvancedTools by remember { mutableStateOf(false) }
     val microphonePermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -520,6 +521,12 @@ private fun InstalledModelsScreen() {
     }
     val models = remember(revision) { InstalledModels.list(context) }
     Column(Modifier.fillMaxSize().imePadding()) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp),
+            horizontalArrangement = Arrangement.End) {
+            TextButton(onClick = { showAdvancedTools = !showAdvancedTools }) {
+                Text(if (showAdvancedTools) "Ascunde instrumentele" else "Instrumente")
+            }
+        }
         Column(
             Modifier.weight(1f).fillMaxWidth().verticalScroll(chatScrollState)
                 .padding(horizontal = 16.dp, vertical = 8.dp),
@@ -571,6 +578,7 @@ private fun InstalledModelsScreen() {
                 Text("Deschide scena 3D generată")
             }
         }
+        if (showAdvancedTools) {
         var show3dTools by remember { mutableStateOf(false) }
         LaunchedEffect(taskDecision.task) {
             if (taskDecision.task == XilonCore.Task.THREE_D) show3dTools = true
@@ -624,6 +632,7 @@ private fun InstalledModelsScreen() {
             style = MaterialTheme.typography.bodySmall)
         if (htmlExportStatus.isNotBlank()) Text(htmlExportStatus,
             style = MaterialTheme.typography.bodySmall)
+        }
         }
         if (busy && loadingModel == null && response.isBlank()) {
             Text("XILON AI pregătește răspunsul…",
