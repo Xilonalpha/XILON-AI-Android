@@ -526,11 +526,14 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
         Text("Comenzi Android disponibile fără model AI încărcat.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
-        if (actionFeedback.isNotBlank()) {
-            Surface(shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant) {
-                Text(actionFeedback, modifier = Modifier.padding(12.dp),
-                    style = MaterialTheme.typography.bodyMedium)
+    }
+    if (actionFeedback.isNotBlank()) {
+        Surface(shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant) {
+            Column(Modifier.padding(12.dp)) {
+                Text("Rezultat comandă Android", style = MaterialTheme.typography.labelMedium)
+                Text(actionFeedback, style = MaterialTheme.typography.bodyMedium)
+                TextButton(onClick = { actionFeedback = "" }) { Text("Închide") }
             }
         }
     }
@@ -824,8 +827,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
             if (speechStatus.isNotBlank()) Text(speechStatus,
                 style = MaterialTheme.typography.labelSmall)
         }
-        if (actionFeedback.isNotBlank()) Text(actionFeedback,
-            style = MaterialTheme.typography.bodySmall)
+
         if (prompt.isNotBlank() && toolsVisible) {
             Text("XILON Core: ${taskDecision.explanation}", style = MaterialTheme.typography.labelSmall)
             if (suggestedModel != null && suggestedModel != activeModel) {
@@ -873,9 +875,6 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
             } else {
                 Spacer(Modifier.weight(1f))
             }
-        }
-        if (actionFeedback.isNotBlank()) {
-            Text(actionFeedback, style = MaterialTheme.typography.bodySmall)
         }
         if (activeModel.isBlank()) Text("Comenzi Android disponibile fără model GGUF. Pentru chat, încarcă un model.", style = MaterialTheme.typography.labelSmall)
         Button(enabled = !busy && prompt.isNotBlank() &&
