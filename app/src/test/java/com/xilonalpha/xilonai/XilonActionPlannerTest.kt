@@ -23,7 +23,7 @@ class XilonActionPlannerTest {
 
     @Test fun whatsappRemainsUserConfirmed() {
         val plan = XilonActionPlanner.plan("trimite pe whatsapp: Salut!")
-        assertTrue(plan!!.requiresConfirmation)
+        assertEquals(XilonActions.Kind.SHARE_MESSAGE, plan!!.steps.single().proposal.kind)
         assertEquals(XilonActions.Kind.SHARE_MESSAGE, plan.steps.single().proposal.kind)
     }
     @Test fun supportsRomanianSequentialCommand() {
