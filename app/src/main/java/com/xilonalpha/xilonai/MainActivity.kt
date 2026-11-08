@@ -866,6 +866,7 @@ private fun InstalledModelsScreen() {
             busy = true
             response = ""
             val submitted = prompt
+            val submittedTask = XilonCore.classify(submitted).task
             pendingPrompt = submitted
             prompt = ""
             val completeHistorySnapshot = chatHistory
@@ -882,7 +883,10 @@ private fun InstalledModelsScreen() {
                     tokenBudget = 4096 - outputLimit,
                     render = { turns ->
                         val roles = mutableListOf("system")
-                        val contents = mutableListOf("You are a helpful assistant.")
+                        val systemInstruction = if (submittedTask == XilonCore.Task.THREE_D)
+                            "You are XILON AI, an offline 3D coding assistant. For a 3D creation request, output a complete standalone HTML document with a Three.js scene using JavaScript and procedural geometry. Include camera, lights, controls, and an animation loop. Use locally available Three.js; do not import remote scripts, models, textures, or network resources. For a human face, clearly label the result as a stylized procedural approximation, not a photorealistic scan. Output code rather than promising a rendered model."
+                        else "You are a helpful assistant."
+                        val contents = mutableListOf(systemInstruction)
                         turns.forEach { (question, answer) ->
                             roles.add("user"); contents.add(question)
                             roles.add("assistant"); contents.add(answer)
@@ -892,7 +896,7 @@ private fun InstalledModelsScreen() {
                             LocalLlama.formatChat(roles.toTypedArray(), contents.toTypedArray())
                         }.getOrNull()
                         native ?: buildString {
-                            append("You are a helpful assistant.\\n")
+                            append(systemInstruction).append("\\n")
                             turns.forEach { (q, answer) ->
                                 append("User: ").append(q).append("\\nAssistant: ").append(answer).append("\\n")
                             }
