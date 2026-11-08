@@ -36,8 +36,8 @@ class XilonActionPlannerTest {
 
     @Test fun whatsappRemainsUserConfirmed() {
         val plan = XilonActionPlanner.plan("trimite pe whatsapp: Salut!")
+        assertNotNull(plan)
         assertEquals(XilonActions.Kind.SHARE_MESSAGE, plan!!.steps.single().proposal.kind)
-        assertEquals(XilonActions.Kind.SHARE_MESSAGE, plan.steps.single().proposal.kind)
     }
     @Test fun supportsRomanianSequentialCommand() {
         val plan = XilonActionPlanner.plan("deschide setările și apoi volum la 30%")
@@ -60,8 +60,9 @@ class XilonActionPlannerTest {
     @Test fun voiceTranscriptCanBecomeActionPlan() {
         val plan = XilonActionPlanner.plan("caută pe youtube: muzică relaxantă; volum la 30%")
         assertNotNull(plan)
-        assertEquals(1, plan!!.steps.size)
-        assertEquals(2, plan.steps.size)
+        assertEquals(2, plan!!.steps.size)
+        assertEquals(XilonActions.Kind.YOUTUBE_SEARCH, plan.steps[0].proposal.kind)
+        assertEquals(XilonActions.Kind.SET_VOLUME, plan.steps[1].proposal.kind)
     }
     @Test fun commaInsideWhatsappMessageIsNotAnActionSeparator() {
         val plan = XilonActionPlanner.plan("trimite pe whatsapp: Salut, ce faci?")
