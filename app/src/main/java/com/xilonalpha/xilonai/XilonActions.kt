@@ -74,7 +74,7 @@ object XilonActions {
                 "piesa anterioara", "previous track")
                 .any(q::contains) ->
                 Proposal(Kind.PREVIOUS_TRACK, "Melodia anterioară", "Solicită redarea piesei anterioare.")
-            Regex("""^(?:setează|seteaza|set|pune|reglează|regleaza)\\s+(?:volumul|volum|volume)(?:\\s+(?:la|to))?\\s+\\d{1,3}\\s*%$""").matches(q) ->
+            Regex("""^(?:setează|seteaza|set|pune|reglează|regleaza)\s+(?:volumul|volum|volume)(?:\s+(?:la|to))?\s+\d{1,3}\s*%$""").matches(q) ->
                 Proposal(Kind.SET_VOLUME, "Setează volumul media",
                     "Reglează volumul media la procentul cerut, după confirmare.")
             listOf("volum mai tare", "mărește volumul", "mareste volumul", "volume up")
