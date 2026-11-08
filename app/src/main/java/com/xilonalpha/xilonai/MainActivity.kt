@@ -553,6 +553,9 @@ private fun InstalledModelsScreen() {
             }
         }
         var show3dTools by remember { mutableStateOf(false) }
+        LaunchedEffect(taskDecision.task) {
+            if (taskDecision.task == XilonCore.Task.THREE_D) show3dTools = true
+        }
         TextButton(onClick = { show3dTools = !show3dTools }) {
             Text(if (show3dTools) "Ascunde instrumentele 3D" else "Instrumente 3D și export")
         }
