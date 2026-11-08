@@ -342,6 +342,7 @@ private fun InstalledModelsScreen() {
     var prompt by remember { mutableStateOf("") }
     var pendingPrompt by remember { mutableStateOf<String?>(null) }
     var maxResponseTokens by remember { mutableIntStateOf(512) }
+    var preferFastAnswers by remember { mutableStateOf(true) }
     var response by remember { mutableStateOf("") }
     var htmlExportStatus by remember { mutableStateOf("") }
     var pendingHtml by remember { mutableStateOf<String?>(null) }
@@ -661,6 +662,10 @@ private fun InstalledModelsScreen() {
                 }
             }
         }) { Text("Șterge istoricul conversației") }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(checked = preferFastAnswers, onCheckedChange = { preferFastAnswers = it })
+            Text("Răspuns rapid pentru Qwen3 (fără raționament extins)")
+        }
         Text("Lungimea răspunsului", style = MaterialTheme.typography.bodySmall)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(256, 512, 1024, 1536).forEach { count ->
@@ -887,6 +892,7 @@ private fun InstalledModelsScreen() {
             val recalledHistory = LocalMemoryRecall.recall(completeHistorySnapshot, submitted)
             val historySnapshot = recalledHistory + recentHistory
             val modelSnapshot = activeModel
+            val fastAnswerSnapshot = preferFastAnswers
             val outputLimit = maxResponseTokens
             thread(name = "local-inference") {
                 try {
@@ -904,7 +910,9 @@ private fun InstalledModelsScreen() {
                             roles.add("user"); contents.add(question)
                             roles.add("assistant"); contents.add(answer)
                         }
-                        roles.add("user"); contents.add(submitted)
+                        val qwen3Fast = fastAnswerSnapshot && modelSnapshot.lowercase(java.util.Locale.ROOT).contains("qwen3")
+                        val modelPrompt = if (qwen3Fast) submitted + "\n/no_think" else submitted
+                        roles.add("user"); contents.add(modelPrompt)
                         val native = runCatching {
                             LocalLlama.formatChat(roles.toTypedArray(), contents.toTypedArray())
                         }.getOrNull()
@@ -913,7 +921,7 @@ private fun InstalledModelsScreen() {
                             turns.forEach { (q, answer) ->
                                 append("User: ").append(q).append("\\nAssistant: ").append(answer).append("\\n")
                             }
-                            append("User: ").append(submitted).append("\\nAssistant:")
+                            append("User: ").append(modelPrompt).append("\\nAssistant:")
                         }
                     },
                     countTokens = { text -> LocalLlama.countTokens(text) }
