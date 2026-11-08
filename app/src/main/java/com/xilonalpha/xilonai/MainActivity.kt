@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Alignment
@@ -1055,8 +1056,10 @@ private fun XilonChatBubble(message: String, isUser: Boolean) {
                 shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 6.dp),
                 color = MaterialTheme.colorScheme.primaryContainer
             ) {
-                Text(message, modifier = Modifier.padding(14.dp),
-                    style = MaterialTheme.typography.bodyLarge)
+                SelectionContainer {
+                    Text(message, modifier = Modifier.padding(14.dp),
+                        style = MaterialTheme.typography.bodyLarge)
+                }
             }
         } else {
             Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
@@ -1069,8 +1072,10 @@ private fun XilonChatBubble(message: String, isUser: Boolean) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Spacer(Modifier.height(8.dp))
-                Text(message, style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(start = 26.dp, end = 8.dp))
+                SelectionContainer {
+                    Text(message, style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.padding(start = 26.dp, end = 8.dp))
+                }
             }
         }
     }
