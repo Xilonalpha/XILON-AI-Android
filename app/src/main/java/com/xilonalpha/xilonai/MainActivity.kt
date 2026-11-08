@@ -556,7 +556,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
         }
         if (chatHistory.size > 12) {
             TextButton(onClick = { showFullHistory = !showFullHistory }) {
-                Text(if (showFullHistory) "Arată ultimele 12 schimburi" else "Arată istoricul complet (${chatHistory.size} schimburi)")
+                Text(if (showFullHistory) "Restrânge istoricul" else "Istoric anterior · ${chatHistory.size - 12} schimburi")
             }
         }
         (if (showFullHistory) chatHistory else chatHistory.takeLast(12)).forEach { (question, answer) ->
@@ -852,7 +852,8 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
             placeholder = { Text("Scrie un mesaj sau o comandă…") },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(28.dp),
-            maxLines = 5
+            maxLines = 6,
+            minLines = 1
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -996,7 +997,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
                 }
             }
             }
-        }) { Text("Trimite") }
+        }) { Text(if (actionPlan != null) "Execută comanda" else "Trimite") }
         if (busy && loadingModel == null) {
             val seconds = generationElapsedMs / 1000L
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
