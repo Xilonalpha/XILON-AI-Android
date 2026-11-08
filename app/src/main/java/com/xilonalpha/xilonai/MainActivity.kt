@@ -498,7 +498,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
         }
     }
     val chatScrollState = rememberScrollState()
-    LaunchedEffect(chatHistory.size, response.length, activeModel, pendingPrompt, actionFeedback) {
+    LaunchedEffect(chatHistory.size, response.length, activeModel, pendingPrompt) {
         if (chatScrollState.maxValue > 0) chatScrollState.scrollTo(chatScrollState.maxValue)
     }
     val actionPlan = remember(prompt) { XilonActionPlanner.plan(prompt) }
