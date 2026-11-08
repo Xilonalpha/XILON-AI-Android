@@ -844,38 +844,22 @@ private fun InstalledModelsScreen() {
                 Spacer(Modifier.weight(1f))
             }
         }
-        // A recognized device command can be executed directly from the composer,
-        // but only after the user explicitly confirms the displayed action plan.
-        if (actionPlan != null && !busy) {
-            Surface(
-                color = MaterialTheme.colorScheme.secondaryContainer,
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Column(Modifier.fillMaxWidth().padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Acțiune Android detectată · ${actionPlan.steps.size} pași",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer)
-                    actionPlan.steps.forEachIndexed { index, step ->
-                        Text("${index + 1}. ${step.proposal.label}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer)
-                    }
-                    Button(onClick = {
-                        val report = XilonActionPlanner.executeWithReport(context, actionPlan)
-                        val summary = if (report.allDispatched)
-                            "Trimise: ${report.dispatched}/${report.total}; verificate: ${report.verified}. "
-                        else "Oprit la pasul ${report.failedStep}; trimise: ${report.dispatched}/${report.total}. "
-                        actionFeedback = summary + report.details.joinToString("\n")
-                    }) { Text("Confirmă acțiunea Android") }
-                    if (actionFeedback.isNotBlank()) {
-                        Text(actionFeedback, style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-            }
+        if (actionFeedback.isNotBlank()) {
+            Text(actionFeedback, style = MaterialTheme.typography.bodySmall)
         }
         if (activeModel.isBlank()) Text("Comenzi Android disponibile fără model GGUF. Pentru chat, încarcă un model.", style = MaterialTheme.typography.labelSmall)
-        Button(enabled = !busy && activeModel.isNotBlank() && prompt.isNotBlank(), onClick = {
+        Button(enabled = !busy && prompt.isNotBlank() &&
+            (actionPlan != null || activeModel.isNotBlank()), onClick = {
+            if (actionPlan != null) {
+                // Submitting the command is authorization to dispatch allowlisted actions.
+                // External apps still own their final send/permission UI.
+                val report = XilonActionPlanner.executeWithReport(context, actionPlan)
+                val summary = if (report.allDispatched)
+                    "Trimise: ${report.dispatched}/${report.total}; verificate: ${report.verified}. "
+                else "Oprit la pasul ${report.failedStep}; trimise: ${report.dispatched}/${report.total}. "
+                actionFeedback = summary + report.details.joinToString("\n")
+                prompt = ""
+            } else {
             stopRequested.set(false)
             generationStartedAt = android.os.SystemClock.elapsedRealtime()
             generationElapsedMs = 0L
@@ -981,6 +965,7 @@ private fun InstalledModelsScreen() {
                         busy = false
                     }
                 }
+            }
             }
         }) { Text("Trimite  ↑") }
         if (busy && loadingModel == null) {
