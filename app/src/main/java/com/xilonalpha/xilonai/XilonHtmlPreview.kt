@@ -24,6 +24,7 @@ fun XilonHtmlPreview(html: String, onSceneGlb: ((ByteArray?, String?) -> Unit)? 
         modifier = Modifier.fillMaxSize(),
         factory = { context ->
             WebView(context).apply {
+                tag = html
                 settings.javaScriptEnabled = true
                 setOnLongClickListener {
                     if (onSceneGlb != null) {
