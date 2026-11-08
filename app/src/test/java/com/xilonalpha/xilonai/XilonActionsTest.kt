@@ -49,6 +49,14 @@ class XilonActionsTest {
         assertEquals(XilonActions.Kind.VOLUME_DOWN,
             XilonActions.propose("micșorează volumul")?.kind)
     }
+    @Test fun percentageVolumeCommandsAreRecognizedWithoutExecution() {
+        assertEquals(XilonActions.Kind.SET_VOLUME,
+            XilonActions.propose("Setează volumul la 40%")?.kind)
+        assertEquals(XilonActions.Kind.SET_VOLUME,
+            XilonActions.propose("pune volum 15%")?.kind)
+        assertNull(XilonActions.propose("Cum setez volumul la 40%?"))
+        assertNull(XilonActions.propose("setează volumul la maxim"))
+    }
     @Test fun whatsappDraftRequiresExplicitPrefix() {
         assertEquals(XilonActions.Kind.SHARE_MESSAGE,
             XilonActions.propose("trimite pe whatsapp: Salut!")?.kind)
