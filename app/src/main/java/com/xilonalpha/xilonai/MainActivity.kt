@@ -43,6 +43,8 @@ import org.json.JSONArray
 import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.concurrent.thread
+import kotlinx.coroutines.launch
+import androidx.compose.material.icons.filled.Menu
 
 data class HubModel(val id: String, val downloads: Long, val likes: Long, val updated: String)
 
@@ -78,18 +80,30 @@ private fun XilonHome() {
     var selected by remember { mutableIntStateOf(0) }
     val tabs = listOf("Chat", "Modele", "Dispozitiv")
     val icons = listOf(Icons.Filled.ChatBubbleOutline, Icons.Filled.Memory, Icons.Filled.PhoneAndroid)
-    Scaffold(containerColor = XilonDark, bottomBar = {
-        NavigationBar(containerColor = XilonSurface) {
-            tabs.forEachIndexed { index, name ->
-                NavigationBarItem(
-                    selected = selected == index,
-                    onClick = { selected = index },
-                    icon = { Icon(icons[index], contentDescription = name) },
-                    label = { Text(name) }
-                )
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val drawerScope = rememberCoroutineScope()
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet {
+                Text("XILON AI", modifier = Modifier.padding(24.dp),
+                    style = MaterialTheme.typography.headlineSmall)
+                tabs.forEachIndexed { index, name ->
+                    NavigationDrawerItem(
+                        label = { Text(name) },
+                        selected = selected == index,
+                        onClick = {
+                            selected = index
+                            drawerScope.launch { drawerState.close() }
+                        },
+                        icon = { Icon(icons[index], contentDescription = null) },
+                        modifier = Modifier.padding(horizontal = 12.dp)
+                    )
+                }
             }
         }
-    }) { padding ->
+    ) {
+    Scaffold(containerColor = XilonDark) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             Column(
                 Modifier.fillMaxWidth().background(
@@ -97,6 +111,9 @@ private fun XilonHome() {
                 ).padding(horizontal = 18.dp, vertical = 12.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    IconButton(onClick = { drawerScope.launch { drawerState.open() } }) {
+                        Icon(Icons.Filled.Menu, contentDescription = "Deschide meniul lateral", tint = Color.White)
+                    }
                     Surface(color = Color.White.copy(alpha = 0.14f), shape = RoundedCornerShape(16.dp)) {
                         Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = Color(0xFF92F4F1),
                             modifier = Modifier.padding(12.dp).size(28.dp))
@@ -137,6 +154,7 @@ private fun XilonHome() {
                 }
             }
         }
+    }
     }
 }
 
