@@ -459,6 +459,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
     var showModelManager by remember { mutableStateOf(false) }
     var showChatSettings by remember { mutableStateOf(false) }
     var showGenerationDetails by remember { mutableStateOf(false) }
+    var showFullHistory by remember { mutableStateOf(false) }
     val showAdvancedTools = toolsVisible
     val microphonePermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -550,7 +551,12 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        chatHistory.takeLast(12).forEach { (question, answer) ->
+        if (chatHistory.size > 12) {
+            TextButton(onClick = { showFullHistory = !showFullHistory }) {
+                Text(if (showFullHistory) "Arată ultimele 12 schimburi" else "Arată istoricul complet (${chatHistory.size} schimburi)")
+            }
+        }
+        (if (showFullHistory) chatHistory else chatHistory.takeLast(12)).forEach { (question, answer) ->
             XilonChatBubble(question, isUser = true)
             XilonChatBubble(answer, isUser = false)
         }
@@ -820,10 +826,10 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
         }
         if (actionFeedback.isNotBlank()) Text(actionFeedback,
             style = MaterialTheme.typography.bodySmall)
-        if (prompt.isNotBlank()) {
+        if (prompt.isNotBlank() && toolsVisible) {
             Text("XILON Core: ${taskDecision.explanation}", style = MaterialTheme.typography.labelSmall)
             if (suggestedModel != null && suggestedModel != activeModel) {
-                Text("Model sugerat (orientativ): " + suggestedModel.take(42),
+                Text("Model sugerat: " + suggestedModel.take(42),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.secondary)
             }
@@ -991,7 +997,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
                 }
             }
             }
-        }) { Text("Trimite  ↑") }
+        }) { Text("Trimite") }
         if (busy && loadingModel == null) {
             val seconds = generationElapsedMs / 1000L
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
