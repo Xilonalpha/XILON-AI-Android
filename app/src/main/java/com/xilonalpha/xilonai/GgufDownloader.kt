@@ -22,6 +22,7 @@ object GgufDownloader {
         filename: String,
         expectedBytes: Long,
         expectedSha256: String? = null,
+        revision: String,
         onProgress: (Long, Long) -> Unit = { _, _ -> },
         isCancelled: () -> Boolean = { false }
     ): Result {
@@ -31,9 +32,10 @@ object GgufDownloader {
         require(preflight.runnableCandidate) { preflight.reason }
         require(filename.split('/').all { it.isNotBlank() && it != "." && it != ".." })
         require(expectedBytes > 0) { "Known size required for safe download" }
+        require(revision.matches(Regex("[a-fA-F0-9]{40}"))) { "Immutable revision required" }
         val root = File(context.filesDir, "models")
         check(root.isDirectory || root.mkdirs())
-        val safeName = (modelId + "__" + filename).replace(Regex("[^A-Za-z0-9_.-]"), "_")
+        val safeName = (modelId + "__" + revision + "__" + filename).replace(Regex("[^A-Za-z0-9_.-]"), "_")
         val target = File(root, safeName)
         val partial = File(root, "$safeName.part")
         if (target.exists() && target.length() != expectedBytes) check(target.delete()) { "Unable to remove invalid existing file" }
@@ -49,7 +51,7 @@ object GgufDownloader {
         val segments = filename.split("/").joinToString("/") {
             java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20")
         }
-        val connection = URL("https://huggingface.co/$modelId/resolve/main/$segments").openConnection() as HttpURLConnection
+        val connection = URL("https://huggingface.co/$modelId/resolve/$revision/$segments").openConnection() as HttpURLConnection
         connection.connectTimeout = 15000
         connection.readTimeout = 30000
         connection.instanceFollowRedirects = true
