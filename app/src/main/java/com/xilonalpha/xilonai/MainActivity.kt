@@ -854,8 +854,21 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(28.dp),
             maxLines = 6,
-            minLines = 1
+            minLines = 1,
+            enabled = !busy,
+            trailingIcon = {
+                if (prompt.isNotEmpty()) {
+                    TextButton(onClick = { prompt = "" }, enabled = !busy) {
+                        Text("Șterge")
+                    }
+                }
+            }
         )
+        if (prompt.length > 1200) {
+            Text("${prompt.length} caractere · mesaj lung, generarea poate dura mai mult",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
