@@ -1035,7 +1035,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
                             roles.add("assistant"); contents.add(answer)
                         }
                         val qwen3Fast = fastAnswerSnapshot && modelSnapshot.lowercase(java.util.Locale.ROOT).contains("qwen3")
-                        val modelPrompt = if (qwen3Fast) submitted + "\n/no_think" else submitted
+                        val modelPrompt = if (qwen3Fast) "/no_think\n" + submitted else submitted
                         roles.add("user"); contents.add(modelPrompt)
                         val native = runCatching {
                             LocalLlama.formatChat(roles.toTypedArray(), contents.toTypedArray())
