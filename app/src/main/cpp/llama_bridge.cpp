@@ -99,7 +99,7 @@ Java_com_xilonalpha_xilonai_LocalLlama_load(JNIEnv* env, jobject, jstring path, 
     model = llama_model_load_from_file(filename.c_str(), params);
     if (!model) return JNI_FALSE;
     auto cp = llama_context_default_params();
-    cp.n_ctx = static_cast<uint32_t>(std::max(512, std::min(4096, static_cast<int>(context_size))));
+    cp.n_ctx = static_cast<uint32_t>(std::clamp(static_cast<int>(context_size), 512, 4096));
     // Avoid oversubscribing low-core phones while capping inference workers
     // on big.LITTLE devices. Batch capacity stays bounded for mobile memory.
     const unsigned int cores = std::thread::hardware_concurrency();
@@ -107,7 +107,7 @@ Java_com_xilonalpha_xilonai_LocalLlama_load(JNIEnv* env, jobject, jstring path, 
     cp.n_batch = 256;
     cp.n_threads = workers;
     cp.n_threads_batch = workers;
-    __android_log_print(ANDROID_LOG_INFO, "XilonInference", "load_context=%u cpu_threads=%d batch_threads=%d", cp.n_ctx, cp.n_threads, cp.n_threads_batch);
+    __android_log_print(ANDROID_LOG_INFO, "XilonInference", "load_context=%u batch=%u cpu_threads=%d batch_threads=%d", cp.n_ctx, cp.n_batch, cp.n_threads, cp.n_threads_batch);
     context = llama_init_from_model(model, cp);
     if (!context) { unload(); return JNI_FALSE; }
     return JNI_TRUE;
