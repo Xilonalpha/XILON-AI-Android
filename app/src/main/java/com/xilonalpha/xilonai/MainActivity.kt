@@ -452,6 +452,39 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
         } else "Export OBJ anulat."
         pendingObj = null
     }
+    // Optional local soundtrack for music-video previews. The file stays on device.
+    var selectedMusicUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    var musicPlaybackError by remember { mutableStateOf("") }
+    val musicPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            selectedMusicUri = uri
+            musicPlaybackError = ""
+            runCatching {
+                context.contentResolver.takePersistableUriPermission(
+                    uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            }
+        }
+    }
+    val musicPlayer = remember(context, selectedMusicUri) {
+        selectedMusicUri?.let { uri ->
+            runCatching {
+                android.media.MediaPlayer().apply {
+                    setDataSource(context, uri)
+                    prepare()
+                }
+            }.onFailure { musicPlaybackError = "Nu pot deschide melodia: ${it.message}" }
+                .getOrNull()
+        }
+    }
+    DisposableEffect(musicPlayer) {
+        onDispose {
+            runCatching { musicPlayer?.stop() }
+            runCatching { musicPlayer?.release() }
+        }
+    }
     var previewHtml by remember { mutableStateOf<String?>(null) }
     previewHtml?.let { html ->
         AlertDialog(
@@ -460,6 +493,31 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
             text = {
                 Column {
                     Text("Ține apăsat pe scena Three.js pentru export GLB cu materiale și texturi acceptate de GLTFExporter. Previzualizare locală WebGL/HTML. Accesul la rețea și fișiere este blocat. Three.js clasic este inclus local; alte biblioteci și module externe nu se încarcă.")
+                    if (XilonMusicVideo.parse(response) != null ||
+                        chatHistory.lastOrNull()?.second?.let { XilonMusicVideo.parse(it) } != null) {
+                        OutlinedButton(onClick = { musicPicker.launch(arrayOf("audio/*")) }) {
+                            Text(if (selectedMusicUri == null) "Alege melodia locală" else "Schimbă melodia")
+                        }
+                        if (musicPlayer != null) {
+                            Row {
+                                OutlinedButton(onClick = {
+                                    runCatching {
+                                        if (musicPlayer.isPlaying) musicPlayer.pause()
+                                        else musicPlayer.start()
+                                    }.onFailure { musicPlaybackError = it.message ?: "Eroare audio" }
+                                }) { Text("Redă / Pauză melodie") }
+                                OutlinedButton(onClick = {
+                                    runCatching {
+                                        musicPlayer.pause()
+                                        musicPlayer.seekTo(0)
+                                    }
+                                }) { Text("De la început") }
+                            }
+                            Text("Redare audio locală. Sincronizarea exactă cu animația și exportul MP4 nu sunt încă implementate.",
+                                style = MaterialTheme.typography.bodySmall)
+                        }
+                        if (musicPlaybackError.isNotBlank()) Text(musicPlaybackError)
+                    }
                     Spacer(Modifier.height(8.dp))
                     Box(Modifier.fillMaxWidth().height(360.dp)) {
                         XilonHtmlPreview(html, onSceneGlb = { bytes, error ->
