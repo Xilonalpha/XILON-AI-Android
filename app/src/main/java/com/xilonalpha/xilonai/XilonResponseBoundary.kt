@@ -26,6 +26,9 @@ object XilonResponseBoundary {
             }
             visible = visible.removeRange(start, end + "</think>".length)
         }
+        // A non-thinking assistant prefill can close <think> in the prompt, so
+        // the generated suffix may contain an orphan closing marker.
+        visible = visible.replace("</think>", "")
         val end = markers.map { visible.indexOf(it) }.filter { it >= 0 }.minOrNull()
         return (if (end == null) visible else visible.substring(0, end)).trim()
     }
