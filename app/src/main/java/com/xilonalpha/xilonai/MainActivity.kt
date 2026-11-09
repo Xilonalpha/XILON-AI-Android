@@ -169,14 +169,16 @@ private fun ModelExplorer() {
     var downloading by remember { mutableStateOf(false) }
     val cancelDownload = remember { AtomicBoolean(false) }
     val context = LocalContext.current
-    fun refresh() {
-        if (loading) return
+    var refreshNonce by remember { mutableIntStateOf(0) }
+    val requestVersion = remember { java.util.concurrent.atomic.AtomicInteger(0) }
+    fun refresh(query: String, recentFirst: Boolean) {
+        val requestId = requestVersion.incrementAndGet()
         loading = true
         error = null
         thread(name = "hf-catalog") {
             try {
-                val sort = if (newest) "lastModified" else "downloads"
-                val encodedQuery = java.net.URLEncoder.encode(hubQuery.trim(), "UTF-8")
+                val sort = if (recentFirst) "lastModified" else "downloads"
+                val encodedQuery = java.net.URLEncoder.encode(query.trim(), "UTF-8")
                 val queryPart = if (encodedQuery.isBlank()) "" else "&search=$encodedQuery"
                 val endpoint = "https://huggingface.co/api/models?filter=gguf&sort=$sort&direction=-1&limit=100$queryPart"
                 val connection = URL(endpoint).openConnection() as HttpURLConnection
@@ -195,17 +197,26 @@ private fun ModelExplorer() {
                             item.optString("lastModified")
                         )
                     }
-                    (context as ComponentActivity).runOnUiThread { models = parsed; loading = false }
+                    (context as ComponentActivity).runOnUiThread {
+                        if (requestVersion.get() == requestId) {
+                            models = parsed
+                            selectedModel = null
+                            candidates = emptyList()
+                            loading = false
+                        }
+                    }
                 } finally { connection.disconnect() }
             } catch (e: Exception) {
                 (context as ComponentActivity).runOnUiThread {
-                    error = e.message ?: "Eroare de rețea"
-                    loading = false
+                    if (requestVersion.get() == requestId) {
+                        error = e.message ?: "Eroare de rețea"
+                        loading = false
+                    }
                 }
             }
         }
     }
-    LaunchedEffect(newest) { refresh() }
+    LaunchedEffect(newest, hubQuery, refreshNonce) { refresh(hubQuery, newest) }
     Text("Catalog GGUF Hugging Face", style = MaterialTheme.typography.titleMedium)
     OutlinedTextField(
         value = searchText,
@@ -217,18 +228,18 @@ private fun ModelExplorer() {
         placeholder = { Text("Ex: Qwen, Llama, Gemma") }
     )
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Button(enabled = !loading, onClick = { hubQuery = searchText.trim(); refresh() }) {
+        Button(onClick = { hubQuery = searchText.trim(); refreshNonce++ }) {
             Icon(Icons.Filled.Search, null); Spacer(Modifier.width(6.dp)); Text("Caută online")
         }
-        if (hubQuery.isNotBlank()) TextButton(enabled = !loading, onClick = {
-            searchText = ""; hubQuery = ""; refresh()
+        if (hubQuery.isNotBlank()) TextButton(onClick = {
+            searchText = ""; hubQuery = ""; refreshNonce++
         }) { Text("Resetează") }
     }
     Text("Rezultate Hugging Face pentru: ${hubQuery.ifBlank { "catalog general" }}. Compatibilitatea este estimată.", style = MaterialTheme.typography.bodySmall)
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         FilterChip(selected = newest, onClick = { newest = true }, label = { Text("Recente") })
         FilterChip(selected = !newest, onClick = { newest = false }, label = { Text("Populare") })
-        TextButton(onClick = { refresh() }) { Text("Actualizează") }
+        TextButton(onClick = { refreshNonce++ }) { Text("Actualizează") }
     }
     if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
     error?.let { Text("Eroare: $it", color = MaterialTheme.colorScheme.error) }
