@@ -1070,19 +1070,20 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
                         }
                     }
                 }
-                val cleanedResult = result.map { raw ->
-                    XilonResponseBoundary.clean(raw).ifBlank {
-                        if (raw.isNotBlank())
-                            "Modelul a generat doar text intern, fără răspuns final. " +
-                                "Încearcă modul de răspuns rapid (fără raționament) sau un model instruct compatibil."
-                        else ""
-                    }
-                }
+                val cleanedResult = result.map { XilonResponseBoundary.clean(it) }
+                val rawResultLength = result.getOrNull()?.length ?: 0
+                val noVisibleAnswer = cleanedResult.getOrNull().isNullOrBlank()
+                val emptyAnswerMessage = if (rawResultLength > 0)
+                    "Modelul a produs doar raționament sau delimitatori, fără răspuns final. " +
+                        "Încearcă răspunsul rapid sau un model instruct compatibil."
+                else "Modelul nu a produs niciun răspuns. Încearcă o cerere mai scurtă."
                 val elapsed = android.os.SystemClock.elapsedRealtime() - startedAt
-                val tokenCount = cleanedResult.getOrNull()?.let { runCatching { LocalLlama.countTokens(it) }.getOrNull() }
+                val tokenCount = cleanedResult.getOrNull()?.takeIf { it.isNotBlank() }
+                    ?.let { runCatching { LocalLlama.countTokens(it) }.getOrNull() }
                 val timings = runCatching { LocalLlama.lastTimings() }.getOrNull()
                 val memoryAfter = InferenceProfiler.snapshot()
-                val completed = cleanedResult.isSuccess && !stopRequested.get()
+                // Never save UI diagnostics as if they were answers from the model.
+                val completed = cleanedResult.isSuccess && !stopRequested.get() && !noVisibleAnswer
                 val nextHistory = if (completed)
                     (completeHistorySnapshot + (submitted to cleanedResult.getOrThrow())).takeLast(100)
                 else emptyList()
@@ -1095,8 +1096,8 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
                     nativeTimings = timings
                     currentPssMiB = memoryAfter.totalPssKiB / 1024.0
                     nativeHeapMiB = memoryAfter.nativeHeapKiB / 1024.0
-                    rawCharacters = maxOf(rawCharacters, cleanedResult.getOrNull()?.length ?: 0)
-                    response = if (stopRequested.get()) "Generare oprită. Text parțial:\n" + cleanedResult.getOrDefault(response) else cleanedResult.getOrElse { "Eroare: ${it.message}" }
+                    rawCharacters = maxOf(rawCharacters, rawResultLength)
+                    response = if (stopRequested.get()) "Generare oprită. Text parțial:\n" + cleanedResult.getOrDefault(response) else cleanedResult.getOrElse { "Eroare: ${it.message}" }.ifBlank { emptyAnswerMessage }
                     if (completed) {
                         chatHistory = nextHistory
                         prompt = ""
