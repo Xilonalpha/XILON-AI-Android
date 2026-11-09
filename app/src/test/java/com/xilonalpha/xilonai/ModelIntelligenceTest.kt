@@ -25,9 +25,9 @@ class ModelIntelligenceTest {
 
     @Test fun ranksLowerMemoryCandidateAheadOfOversizedCandidate() {
         val small = GgufCandidate("small-Q4_K_M.gguf", 300_000_000, 700_000_000,
-            CompatibilityStatus.ESTIMATED, "", null)
+            CompatibilityStatus.ESTIMATED, "", null, "0123456789abcdef0123456789abcdef01234567")
         val huge = GgufCandidate("huge-F16.gguf", 8_000_000_000, 11_000_000_000,
-            CompatibilityStatus.TOO_LARGE, "", null)
+            CompatibilityStatus.TOO_LARGE, "", null, "0123456789abcdef0123456789abcdef01234567")
         val result = ModelRecommender.rank(listOf(huge, small), 3_000_000_000)
         assertEquals("small-Q4_K_M.gguf", result.first().candidate.filename)
         assertEquals(ModelRecommender.Tier.RECOMMENDED, result.first().tier)
