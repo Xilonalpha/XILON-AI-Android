@@ -59,14 +59,17 @@ object ModelCompatibility {
             val estimated = if (size > 0 && size <= (Long.MAX_VALUE - 512L * MIB) / 2L)
                 size + size * 35L / 100L + 512L * MIB else -1L
             val status = when {
+                !is64 -> CompatibilityStatus.TOO_LARGE
                 size <= 0L || estimated <= 0L -> CompatibilityStatus.UNKNOWN
-                !is64 || size > storageBudget || estimated > conservativeRamBudget ->
+                size > storageBudget || estimated > conservativeRamBudget ->
                     CompatibilityStatus.TOO_LARGE
                 else -> CompatibilityStatus.ESTIMATED
             }
             val reason = when (status) {
                 CompatibilityStatus.UNKNOWN -> "File size unavailable; cannot estimate"
-                CompatibilityStatus.TOO_LARGE -> "Resurse insuficiente acum: RAM disponibil estimat ${conservativeRamBudget / MIB} MiB; spațiu utilizabil ${storageBudget / MIB} MiB"
+                CompatibilityStatus.TOO_LARGE -> if (!is64)
+                    "Motorul GGUF necesită un dispozitiv Android pe 64 de biți"
+                else "Resurse insuficiente acum: RAM disponibil estimat ${conservativeRamBudget / MIB} MiB; spațiu utilizabil ${storageBudget / MIB} MiB"
                 CompatibilityStatus.ESTIMATED -> "Cuantizare: ${analysis.quantization ?: "necunoscută"}; RAM estimat, arhitectură neverificată"
             }
             GgufCandidate(filename, size, estimated, status, reason,
