@@ -444,8 +444,8 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
     var generationElapsedMs by remember { mutableLongStateOf(0L) }
     var generatedCharacters by remember { mutableIntStateOf(0) }
     var rawCharacters by remember { mutableIntStateOf(0) }
-    LaunchedEffect(busy, generationStartedAt) {
-        while (busy && generationStartedAt > 0L) {
+    LaunchedEffect(busy, generationStartedAt, loadingModel) {
+        while (busy && loadingModel == null && generationStartedAt > 0L) {
             generationElapsedMs = android.os.SystemClock.elapsedRealtime() - generationStartedAt
             kotlinx.coroutines.delay(500L)
         }
@@ -741,6 +741,8 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
                     Button(enabled = !busy && !importBusy && !auxiliary && header != null && activeModel != model.name, onClick = {
                         busy = true
                         loadingModel = model.name
+                        generationStartedAt = 0L
+                        generationElapsedMs = 0L
                         response = "Se încarcă modelul în memoria telefonului..."
                         thread(name = "llama-load") {
                             val memoryBefore = InferenceProfiler.snapshot()
@@ -759,6 +761,8 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
                                 outputTokenCount = null
                                 nativeTimings = null
                                 activeModel = if (loaded) model.name else ""
+                                pendingPrompt = null
+                                showFullHistory = false
                                 chatHistory = storedHistory
                                 if (loaded) showModelManager = false
                                 response = if (loaded) "" else "Încărcarea a eșuat: ${attempt.exceptionOrNull()?.message ?: "format incompatibil, model incomplet sau memorie insuficientă"}."
