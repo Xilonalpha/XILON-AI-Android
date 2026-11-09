@@ -62,8 +62,11 @@ for(let i=0;i<${spec.characters};i++){
 }
 const bpm=${spec.bpm},duration=${spec.duration};
 const start=performance.now();
+let musicClock=null;
+window.xilonSetMusicTime=function(ms){musicClock=Math.max(0,ms)/1000};
 function frame(now){
- const t=(now-start)/1000,beat=t*bpm*Math.PI/30;
+ const t=musicClock===null?(now-start)/1000:musicClock;
+ const beat=t*bpm*Math.PI/30;
  dancers.forEach((d,i)=>{
   d.g.position.y=.12*Math.abs(Math.sin(beat+i));
   d.g.rotation.y=.25*Math.sin(beat*.5+i);
@@ -74,7 +77,7 @@ function frame(now){
  });
  light.intensity=45+25*Math.abs(Math.sin(beat));
  renderer.render(scene,camera);
- if(t<duration)requestAnimationFrame(frame);
+ requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
