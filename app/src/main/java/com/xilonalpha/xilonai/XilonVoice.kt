@@ -16,6 +16,7 @@ import java.util.Locale
 class XilonVoice(private val context: Context) {
     private var recognizer: SpeechRecognizer? = null
     private var session = 0
+    private var listening = false
 
     fun available(): Boolean =
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
@@ -31,6 +32,7 @@ class XilonVoice(private val context: Context) {
         val currentSession = session
         val service = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
         recognizer = service
+        listening = true
         service.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) { if (currentSession == session) onStatus("Ascult offline…") }
             override fun onBeginningOfSpeech() { if (currentSession == session) onStatus("Te ascult…") }
@@ -39,7 +41,7 @@ class XilonVoice(private val context: Context) {
             override fun onEndOfSpeech() { if (currentSession == session) onStatus("Procesez vocea local…") }
             override fun onError(error: Int) {
                 if (currentSession != session) return
-                onStatus("Recunoașterea offline a eșuat (cod $error).")
+                onStatus(errorMessage(error))
                 stop()
             }
             override fun onResults(results: Bundle?) {
@@ -65,12 +67,33 @@ class XilonVoice(private val context: Context) {
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
         }
-        service.startListening(request)
+        try {
+            service.startListening(request)
+        } catch (e: RuntimeException) {
+            stop()
+            onStatus("Nu pot porni microfonul offline: ${e.message ?: "eroare Android"}")
+        }
+    }
+
+    fun isListening(): Boolean = listening
+
+    private fun errorMessage(code: Int): String = when (code) {
+        SpeechRecognizer.ERROR_AUDIO -> "Eroare la captarea sunetului. Verifică microfonul."
+        SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Permisiunea microfonului lipsește."
+        SpeechRecognizer.ERROR_NO_MATCH -> "Nu am recunoscut cuvinte. Încearcă din nou."
+        SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Nu s-a detectat voce. Încearcă din nou."
+        SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Recunoașterea vocală este ocupată. Încearcă din nou."
+        SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED -> "Limba selectată nu este acceptată de recunoașterea offline."
+        SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE -> "Pachetul vocal offline pentru această limbă nu este instalat."
+        SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT ->
+            "Serviciul de recunoaștere offline nu a răspuns. Nu se folosește recunoaștere cloud."
+        else -> "Recunoașterea vocală offline a eșuat (cod $code)."
     }
 
     fun stop() {
         check(android.os.Looper.myLooper() == android.os.Looper.getMainLooper())
         session++
+        listening = false
         recognizer?.cancel()
         recognizer?.destroy()
         recognizer = null
