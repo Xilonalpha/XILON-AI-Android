@@ -818,6 +818,8 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
                     Button(enabled = !busy && !importBusy && !auxiliary && header != null && activeModel != model.name, onClick = {
                         busy = true
                         loadingModel = model.name
+                        val previousModelName = activeModel
+                        val previousHistory = chatHistory
                         generationStartedAt = 0L
                         generationElapsedMs = 0L
                         response = "Se încarcă modelul în memoria telefonului..."
@@ -828,6 +830,10 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
                             val memoryAfter = InferenceProfiler.snapshot()
                             val elapsed = android.os.SystemClock.elapsedRealtime() - startedAt
                             val loaded = attempt.getOrDefault(false)
+                            val restored = if (!loaded && previousModelName.isNotBlank()) {
+                                InstalledModels.list(context).firstOrNull { it.name == previousModelName }
+                                    ?.let { previous -> runCatching { LocalLlama.loadModel(previous) }.getOrDefault(false) } == true
+                            } else false
                             val storedHistory = if (loaded) runCatching { LocalConversationStore.load(context, model.name) }.getOrDefault(emptyList()) else emptyList()
                             (context as ComponentActivity).runOnUiThread {
                                 loadDurationMs = if (loaded) elapsed else null
@@ -837,12 +843,12 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
                                 generationDurationMs = null
                                 outputTokenCount = null
                                 nativeTimings = null
-                                activeModel = if (loaded) model.name else ""
+                                activeModel = if (loaded) model.name else if (restored) previousModelName else ""
                                 pendingPrompt = null
                                 showFullHistory = false
-                                chatHistory = storedHistory
+                                chatHistory = if (restored) previousHistory else storedHistory
                                 if (loaded) showModelManager = false
-                                response = if (loaded) "" else "Încărcarea a eșuat: ${attempt.exceptionOrNull()?.message ?: "format incompatibil, model incomplet sau memorie insuficientă"}."
+                                response = if (loaded) "" else if (restored) "Noul model nu a putut fi încărcat. Modelul anterior a fost restaurat." else "Încărcarea a eșuat: ${attempt.exceptionOrNull()?.message ?: "format incompatibil, model incomplet sau memorie insuficientă"}."
                                 busy = false
                                 loadingModel = null
                             }
