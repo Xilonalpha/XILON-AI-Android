@@ -5,6 +5,7 @@
 #include <atomic>
 #include <chrono>
 #include <mutex>
+#include <thread>
 #include <string>
 #include <vector>
 
@@ -99,9 +100,13 @@ Java_com_xilonalpha_xilonai_LocalLlama_load(JNIEnv* env, jobject, jstring path, 
     if (!model) return JNI_FALSE;
     auto cp = llama_context_default_params();
     cp.n_ctx = static_cast<uint32_t>(std::max(512, std::min(4096, static_cast<int>(context_size))));
-    cp.n_batch = 512;
-    cp.n_threads = 4;
-    cp.n_threads_batch = 4;
+    // Avoid oversubscribing low-core phones while capping inference workers
+    // on big.LITTLE devices. Batch capacity stays bounded for mobile memory.
+    const unsigned int cores = std::thread::hardware_concurrency();
+    const int workers = cores == 0 ? 2 : std::clamp(static_cast<int>(cores), 1, 4);
+    cp.n_batch = 256;
+    cp.n_threads = workers;
+    cp.n_threads_batch = workers;
     __android_log_print(ANDROID_LOG_INFO, "XilonInference", "load_context=%u cpu_threads=%d batch_threads=%d", cp.n_ctx, cp.n_threads, cp.n_threads_batch);
     context = llama_init_from_model(model, cp);
     if (!context) { unload(); return JNI_FALSE; }
@@ -141,7 +146,7 @@ static jstring generate_impl(JNIEnv* env, jstring prompt, jint max_tokens, jobje
     __android_log_print(ANDROID_LOG_INFO, "XilonInference", "prompt_tokens=%d context=%d max_output=%d", count, available, limit);
     llama_memory_clear(llama_get_memory(context), true);
     const auto prompt_start = Clock::now();
-    const int chunk = 512;
+    const int chunk = 256;
     for (int i = 0; i < effective_count; i += chunk) {
         if (stop_requested.load()) return fail(env, "Generation cancelled");
         const int n = std::min(chunk, effective_count - i);
