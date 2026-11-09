@@ -461,6 +461,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
     var showChatSettings by remember { mutableStateOf(false) }
     var showGenerationDetails by remember { mutableStateOf(false) }
     var showFullHistory by remember { mutableStateOf(false) }
+    var confirmClearHistory by remember { mutableStateOf(false) }
     val showAdvancedTools = toolsVisible
     val microphonePermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -679,6 +680,9 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
         }
         if (showChatSettings) {
         Text("Memorie locală privată", style = MaterialTheme.typography.labelMedium)
+        OutlinedButton(enabled = !busy, onClick = { confirmClearHistory = true }) { Text("Șterge istoricul conversației") }
+        /* Confirmed destructive action is handled by the dialog below. */
+        if (false) {
         OutlinedButton(enabled = !busy, onClick = {
             val modelName = activeModel
             busy = true
@@ -695,6 +699,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
                 }
             }
         }) { Text("Șterge istoricul conversației") }
+        }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(checked = preferFastAnswers, onCheckedChange = { preferFastAnswers = it })
             Text("Răspuns rapid pentru Qwen3 (fără raționament extins)")
@@ -1037,6 +1042,38 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
         }
                 }
             }
+    }
+    if (confirmClearHistory) {
+        AlertDialog(
+            onDismissRequest = { confirmClearHistory = false },
+            title = { Text("Ștergere istoric local") },
+            text = { Text("Ștergi definitiv conversațiile salvate pentru modelul ${activeModel}? Acțiunea nu poate fi anulată.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmClearHistory = false
+                    val modelName = activeModel
+                    busy = true
+                    thread(name = "clear-local-history") {
+                        val cleared = runCatching { LocalConversationStore.clear(context, modelName) }
+                        (context as ComponentActivity).runOnUiThread {
+                            if (cleared.isSuccess) {
+                                chatHistory = emptyList()
+                                response = ""
+                                pendingPrompt = null
+                                showFullHistory = false
+                                actionFeedback = "Istoricul local a fost șters."
+                            } else {
+                                actionFeedback = "Ștergerea istoricului a eșuat: ${cleared.exceptionOrNull()?.message}"
+                            }
+                            busy = false
+                        }
+                    }
+                }) { Text("Șterge definitiv") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmClearHistory = false }) { Text("Anulează") }
+            }
+        )
     }
     confirmDelete?.let { filename ->
         AlertDialog(
