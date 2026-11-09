@@ -485,6 +485,14 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
             runCatching { musicPlayer?.release() }
         }
     }
+    var musicPositionMs by remember { mutableStateOf<Long?>(null) }
+    androidx.compose.runtime.LaunchedEffect(musicPlayer) {
+        while (musicPlayer != null) {
+            musicPositionMs = runCatching { musicPlayer.currentPosition.toLong() }.getOrNull()
+            kotlinx.coroutines.delay(50L)
+        }
+        musicPositionMs = null
+    }
     var previewHtml by remember { mutableStateOf<String?>(null) }
     previewHtml?.let { html ->
         AlertDialog(
@@ -513,14 +521,14 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
                                     }
                                 }) { Text("De la început") }
                             }
-                            Text("Redare audio locală. Sincronizarea exactă cu animația și exportul MP4 nu sunt încă implementate.",
+                            Text("Animația urmărește poziția MediaPlayer (actualizare la 50 ms). Analiza ritmului și exportul MP4 urmează.",
                                 style = MaterialTheme.typography.bodySmall)
                         }
                         if (musicPlaybackError.isNotBlank()) Text(musicPlaybackError)
                     }
                     Spacer(Modifier.height(8.dp))
                     Box(Modifier.fillMaxWidth().height(360.dp)) {
-                        XilonHtmlPreview(html, onSceneGlb = { bytes, error ->
+                        XilonHtmlPreview(html, musicPositionMs = if (XilonMusicVideo.parse(response) != null || chatHistory.lastOrNull()?.second?.let { XilonMusicVideo.parse(it) } != null) musicPositionMs else null, onSceneGlb = { bytes, error ->
                             if (bytes != null) {
                                 pendingGlb = bytes
                                 glbSaver.launch("xilon-scena-three.glb")
