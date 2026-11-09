@@ -294,7 +294,11 @@ private fun ModelExplorer() {
                         val recommendations = remember(candidates, availableRam) {
                             ModelRecommender.rank(candidates, availableRam)
                         }
-                        recommendations.take(12).forEach { recommendation ->
+                        val phoneCandidates = if (showAllCatalogModels) recommendations else recommendations.filter { it.candidate.status == CompatibilityStatus.ESTIMATED && it.tier != ModelRecommender.Tier.NOT_RECOMMENDED }
+                        if (phoneCandidates.isEmpty() && !inspecting) {
+                            Text("Niciun GGUF recomandabil pentru memoria și stocarea disponibile. Activează afișarea modelelor mari pentru detalii.", style = MaterialTheme.typography.bodySmall)
+                        }
+                        phoneCandidates.take(12).forEach { recommendation ->
                             val file = recommendation.candidate
                             val tierLabel = when (recommendation.tier) {
                                 ModelRecommender.Tier.RECOMMENDED -> "Recomandat"
