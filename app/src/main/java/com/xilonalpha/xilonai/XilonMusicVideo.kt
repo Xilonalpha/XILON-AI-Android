@@ -60,7 +60,8 @@ for(let i=0;i<${spec.characters};i++){
  const legR=part(g,new THREE.CapsuleGeometry(.13,.5,4,8),0x293c6d,.19,-.95,0);
  dancers.push({g,left,right,legL,legR});
 }
-const bpm=${spec.bpm},duration=${spec.duration};
+let bpm=${spec.bpm};const duration=${spec.duration};
+window.xilonSetBpm=function(value){if(Number.isFinite(value)&&value>=60&&value<=180)bpm=value};
 const start=performance.now();
 let musicClock=null;
 window.xilonSetMusicTime=function(ms){musicClock=Math.max(0,ms)/1000};
