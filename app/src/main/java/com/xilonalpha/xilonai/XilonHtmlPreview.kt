@@ -26,8 +26,16 @@ import java.io.ByteArrayInputStream
  */
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-fun XilonHtmlPreview(html: String, onSceneGlb: ((ByteArray?, String?) -> Unit)? = null, onSceneObj: ((String?, String?) -> Unit)? = null) {
+fun XilonHtmlPreview(html: String, musicPositionMs: Long? = null, onSceneGlb: ((ByteArray?, String?) -> Unit)? = null, onSceneObj: ((String?, String?) -> Unit)? = null) {
     var currentWebView by remember { mutableStateOf<WebView?>(null) }
+    androidx.compose.runtime.LaunchedEffect(musicPositionMs, currentWebView) {
+        if (musicPositionMs != null) {
+            currentWebView?.evaluateJavascript(
+                "window.xilonSetMusicTime && window.xilonSetMusicTime(" +
+                    musicPositionMs.coerceAtLeast(0L).toString() + ");", null
+            )
+        }
+    }
     Column {
     if (onSceneObj != null) OutlinedButton(onClick = {
         currentWebView?.evaluateJavascript(XilonSceneObj.javascript) { encoded ->
