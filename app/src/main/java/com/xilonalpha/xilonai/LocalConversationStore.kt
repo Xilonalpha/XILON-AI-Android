@@ -11,6 +11,7 @@ import java.security.MessageDigest
 object LocalConversationStore {
     private const val MAX_TURNS = 100
     private const val MAX_MESSAGE_CHARS = 16000
+    private const val MAX_FILE_BYTES = 4 * 1024 * 1024
 
     private fun storage(context: Context, modelName: String): AtomicFile {
         val digest = MessageDigest.getInstance("SHA-256")
@@ -25,13 +26,16 @@ object LocalConversationStore {
     fun load(context: Context, modelName: String): List<Pair<String, String>> {
         val file = storage(context, modelName)
         if (!file.baseFile.exists()) return emptyList()
+        if (file.baseFile.length() > MAX_FILE_BYTES) return emptyList()
         val bytes = file.openRead().use { it.readBytes() }
+        if (bytes.size > MAX_FILE_BYTES) return emptyList()
         val array = JSONObject(String(bytes, Charsets.UTF_8)).getJSONArray("turns")
         return (0 until array.length()).mapNotNull { i ->
             val item = array.optJSONObject(i) ?: return@mapNotNull null
             val user = item.optString("user")
             val assistant = item.optString("assistant")
-            if (user.isBlank() || assistant.isBlank()) null else user to assistant
+            if (user.isBlank() || assistant.isBlank()) null else
+                user.take(MAX_MESSAGE_CHARS) to assistant.take(MAX_MESSAGE_CHARS)
         }.takeLast(MAX_TURNS)
     }
 
