@@ -50,8 +50,8 @@ object ModelCompatibility {
             if (!analysis.runnableCandidate) return@mapNotNull null
             val lfs = item.optJSONObject("lfs")
             val size = when {
-                item.has("size") && !item.isNull("size") -> item.optLong("size", -1L)
-                lfs != null && lfs.has("size") -> lfs.optLong("size", -1L)
+                item.optLong("size", -1L) > 0L -> item.optLong("size", -1L)
+                lfs != null && lfs.optLong("size", -1L) > 0L -> lfs.optLong("size", -1L)
                 else -> -1L
             }
             // Conservative heuristic, not a runtime memory guarantee:
