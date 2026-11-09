@@ -729,11 +729,19 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
                 Column(Modifier.padding(12.dp)) {
                     Text(model.name, style = MaterialTheme.typography.titleSmall)
                     Text("Dimensiune: ${model.length() / (1024L * 1024L)} MiB")
+                    Text("Fișier local · stocare privată a aplicației",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                     val header = remember(model.absolutePath) {
                         runCatching { NativeGgufProbe.inspect(model) }.getOrNull()
                     }
                     Text(if (header != null) "GGUF v${header.version} · ${header.tensorCount} tensori · ${header.metadataCount} metadate" else "GGUF: antet invalid sau bibliotecă nativă indisponibilă")
                     if (activeModel == model.name) Text("Model activ în memorie", color = MaterialTheme.colorScheme.secondary)
+                    if (header != null && model.length() > 2L * 1024 * 1024 * 1024) {
+                        Text("Model mare: încărcarea poate necesita multă memorie RAM.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                     val analysis = ModelIntelligence.analyze(model.name)
                     val auxiliary = !analysis.runnableCandidate
                     if (auxiliary) Text(analysis.reason, color = MaterialTheme.colorScheme.error)
