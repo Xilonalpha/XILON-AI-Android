@@ -52,7 +52,7 @@ object ModelCompatibility {
             val size = when {
                 item.optLong("size", -1L) > 0L -> item.optLong("size", -1L)
                 lfs != null && lfs.optLong("size", -1L) > 0L -> lfs.optLong("size", -1L)
-                else -> -1L
+                else -> resolveFileSize(modelId, filename)
             }
             // Conservative heuristic, not a runtime memory guarantee:
             // weights + 35% for working buffers + 512 MiB fixed overhead.
@@ -76,6 +76,26 @@ object ModelCompatibility {
                 lfs?.optString("oid")?.removePrefix("sha256:")?.takeIf { it.matches(Regex("[a-fA-F0-9]{64}")) })
         }
         return ModelRecommender.rank(discovered, mem.availMem).map { it.candidate }
+    }
+
+    private fun resolveFileSize(modelId: String, filename: String): Long {
+        val encodedPath = filename.split("/").joinToString("/") {
+            java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20")
+        }
+        val connection = URL("https://huggingface.co/$modelId/resolve/main/$encodedPath").openConnection() as HttpURLConnection
+        connection.requestMethod = "HEAD"
+        connection.connectTimeout = 5000
+        connection.readTimeout = 5000
+        try {
+            if (connection.responseCode !in 200..299) return -1L
+            val linked = connection.getHeaderField("X-Linked-Size")?.toLongOrNull()
+            val length = connection.getHeaderField("Content-Length")?.toLongOrNull()
+            return linked?.takeIf { it > 0L } ?: length?.takeIf { it > 0L } ?: -1L
+        } catch (_: Exception) {
+            return -1L
+        } finally {
+            connection.disconnect()
+        }
     }
 
     private fun getJson(endpoint: String): JSONObject {
