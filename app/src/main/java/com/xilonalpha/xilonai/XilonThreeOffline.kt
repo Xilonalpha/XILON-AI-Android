@@ -64,7 +64,7 @@ object XilonThreeOffline {
             else loader + result)
     }
     private fun injectDiagnostics(html: String): String {
-        val head = Regex("""(?i)<head\\b[^>]*>""").find(html)
+        val head = Regex("""(?i)<head\b[^>]*>""").find(html)
         return if (head != null) html.replaceRange(head.range, head.value + diagnostics)
             else diagnostics + html
     }
