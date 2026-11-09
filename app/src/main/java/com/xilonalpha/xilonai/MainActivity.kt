@@ -516,21 +516,6 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
             kotlinx.coroutines.delay(500L)
         }
     }
-    // Bound CPU-only generation time on slower phones. Native decoding observes
-    // the stop flag and exits cooperatively; never block the UI thread.
-    LaunchedEffect(busy, generationStartedAt, loadingModel) {
-        if (busy && loadingModel == null && generationStartedAt > 0L) {
-            val remaining = (180_000L -
-                (android.os.SystemClock.elapsedRealtime() - generationStartedAt)).coerceAtLeast(0L)
-            kotlinx.coroutines.delay(remaining)
-            if (busy && loadingModel == null && generationStartedAt > 0L &&
-                android.os.SystemClock.elapsedRealtime() - generationStartedAt >= 180_000L) {
-                stopRequested.set(true)
-                LocalLlama.requestStop()
-                voiceStatus = "Generarea a depășit 3 minute și a fost oprită automat."
-            }
-        }
-    }
     var outputTokenCount by remember { mutableStateOf<Int?>(null) }
     var nativeTimings by remember { mutableStateOf<LongArray?>(null) }
     var loadMemoryDeltaMiB by remember { mutableStateOf<Double?>(null) }
