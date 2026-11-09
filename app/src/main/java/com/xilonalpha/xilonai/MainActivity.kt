@@ -476,7 +476,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
                             } else {
                                 objExportStatus = error ?: "Export OBJ eșuat."
                             }
-)
+                        })
                     }
                 }
             },
