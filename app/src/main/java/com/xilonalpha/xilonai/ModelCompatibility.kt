@@ -15,7 +15,8 @@ data class GgufCandidate(
     val estimatedRequiredRamBytes: Long,
     val status: CompatibilityStatus,
     val reason: String,
-    val expectedSha256: String?
+    val expectedSha256: String?,
+    val revision: String
 )
 
 enum class CompatibilityStatus { ESTIMATED, TOO_LARGE, UNKNOWN }
@@ -32,6 +33,8 @@ object ModelCompatibility {
         val url = "https://huggingface.co/api/models/$encodedId?blobs=true"
         val response = getJson(url)
         val siblings = response.optJSONArray("siblings") ?: JSONArray()
+        val revision = response.optString("sha")
+        require(revision.matches(Regex("[a-fA-F0-9]{40}"))) { "Missing immutable Hugging Face revision" }
         val manager = context.getSystemService(ActivityManager::class.java)
         val mem = ActivityManager.MemoryInfo().also(manager::getMemoryInfo)
         val storage = StatFs(context.filesDir.absolutePath).availableBytes
@@ -53,7 +56,7 @@ object ModelCompatibility {
             val size = when {
                 item.optLong("size", -1L) > 0L -> item.optLong("size", -1L)
                 lfs != null && lfs.optLong("size", -1L) > 0L -> lfs.optLong("size", -1L)
-                else -> if (metadataLookups++ < 8) resolveFileSize(modelId, filename) else -1L
+                else -> if (metadataLookups++ < 8) resolveFileSize(modelId, filename, revision) else -1L
             }
             // Conservative heuristic, not a runtime memory guarantee:
             // weights + 35% for working buffers + 512 MiB fixed overhead.
@@ -74,16 +77,16 @@ object ModelCompatibility {
                 CompatibilityStatus.ESTIMATED -> "Cuantizare: ${analysis.quantization ?: "necunoscută"}; RAM estimat, arhitectură neverificată"
             }
             GgufCandidate(filename, size, estimated, status, reason,
-                lfs?.optString("oid")?.removePrefix("sha256:")?.takeIf { it.matches(Regex("[a-fA-F0-9]{64}")) })
+                lfs?.optString("oid")?.removePrefix("sha256:")?.takeIf { it.matches(Regex("[a-fA-F0-9]{64}")) }, revision)
         }
         return ModelRecommender.rank(discovered, mem.availMem).map { it.candidate }
     }
 
-    private fun resolveFileSize(modelId: String, filename: String): Long {
+    private fun resolveFileSize(modelId: String, filename: String, revision: String): Long {
         val encodedPath = filename.split("/").joinToString("/") {
             java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20")
         }
-        val connection = URL("https://huggingface.co/$modelId/resolve/main/$encodedPath").openConnection() as HttpURLConnection
+        val connection = URL("https://huggingface.co/$modelId/resolve/$revision/$encodedPath").openConnection() as HttpURLConnection
         connection.requestMethod = "HEAD"
         connection.connectTimeout = 5000
         connection.readTimeout = 5000
