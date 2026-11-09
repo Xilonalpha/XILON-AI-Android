@@ -660,8 +660,8 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
         }
         // Surface the generated scene directly in chat, not only inside hidden 3D tools.
         val readySceneHtml = if (!busy) {
-            XilonHtmlExport.extract(response)
-                ?: chatHistory.lastOrNull()?.second?.let { XilonHtmlExport.extract(it) }
+            XilonStructured3d.html(response) ?: XilonHtmlExport.extract(response)
+                ?: chatHistory.lastOrNull()?.second?.let { XilonStructured3d.html(it) ?: XilonHtmlExport.extract(it) }
         } else null
         if (readySceneHtml != null) {
             Button(onClick = { previewHtml = readySceneHtml }) {
@@ -687,8 +687,8 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
         OutlinedButton(onClick = { previewHtml = XilonThreeModuleDemo.html }) {
             Text("Testează Three.js ES module")
         }
-        val exportableHtml = XilonHtmlExport.extract(response)
-            ?: chatHistory.lastOrNull()?.second?.let { XilonHtmlExport.extract(it) }
+        val exportableHtml = XilonStructured3d.html(response) ?: XilonHtmlExport.extract(response)
+            ?: chatHistory.lastOrNull()?.second?.let { XilonStructured3d.html(it) ?: XilonHtmlExport.extract(it) }
         if (!busy && exportableHtml != null) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = {
@@ -1027,7 +1027,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
                     render = { turns ->
                         val roles = mutableListOf("system")
                         val systemInstruction = if (submittedTask == XilonCore.Task.THREE_D)
-                            "You are XILON AI, an offline 3D coding assistant. Respond in the same language as the user (Romanian for Romanian requests). For a 3D creation request, output a complete standalone HTML document with a Three.js scene using JavaScript and procedural geometry. Include camera, lights, controls, and an animation loop. Use locally available Three.js; do not import remote scripts, models, textures, or network resources. For a human face, clearly label the result as a stylized procedural approximation, not a photorealistic scan. Output code rather than promising a rendered model."
+                            XilonStructured3d.instruction
                         else "You are XILON AI, a helpful offline assistant. Give the final answer directly and concisely. Respond in the same language as the latest user message (Romanian when the user writes Romanian); do not switch languages without a request. If your chat template supports optional reasoning, prefer the non-thinking mode for ordinary requests. Never include internal reasoning or role delimiters in the final answer."
                         val contents = mutableListOf(systemInstruction)
                         turns.forEach { (question, answer) ->
