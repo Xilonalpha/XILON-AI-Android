@@ -1040,7 +1040,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
                         val native = runCatching {
                             LocalLlama.formatChat(roles.toTypedArray(), contents.toTypedArray())
                         }.getOrNull()
-                        native ?: buildString {
+                        (native?.let { XilonQwenPrompt.forceNonThinkingAssistantPrefix(it, qwen3Fast) }) ?: buildString {
                             append(systemInstruction).append("\n")
                             turns.forEach { (q, answer) ->
                                 append("User: ").append(q).append("\nAssistant: ").append(answer).append("\n")
