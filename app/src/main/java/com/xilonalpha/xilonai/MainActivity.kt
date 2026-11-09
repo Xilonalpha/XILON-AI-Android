@@ -469,7 +469,14 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
                             } else {
                                 glbExportStatus = error ?: "Scena nu poate fi exportată."
                             }
-                        })
+                        }, onSceneObj = { obj, error ->
+                            if (obj != null) {
+                                pendingObj = obj
+                                objSaver.launch("xilon-scena-three.obj")
+                            } else {
+                                objExportStatus = error ?: "Export OBJ eșuat."
+                            }
+)
                     }
                 }
             },
