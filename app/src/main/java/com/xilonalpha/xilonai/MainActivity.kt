@@ -244,7 +244,7 @@ private fun ModelExplorer() {
     if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
     error?.let { Text("Eroare: $it", color = MaterialTheme.colorScheme.error) }
     val visibleModels = models
-    Text("${visibleModels.size} rezultate primite de la Hugging Face (maximum 100 per cerere)", style = MaterialTheme.typography.bodySmall)
+    Text("${visibleModels.size} rezultate primite de la Hugging Face (maximum 100 per cerere). Verifică fișierele pentru a afla dacă un model încape pe telefon.", style = MaterialTheme.typography.bodySmall)
     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items(visibleModels, key = { it.id }) { model ->
             Card(Modifier.fillMaxWidth()) {
@@ -297,7 +297,7 @@ private fun ModelExplorer() {
                             Text(file.filename)
                             Text("$tierLabel · Scor orientativ: ${recommendation.score}/100", style = MaterialTheme.typography.titleSmall)
                             Text(recommendation.explanation, style = MaterialTheme.typography.bodySmall)
-                            Text("Dimensiune: ${file.sizeBytes / (1024L * 1024L)} MiB; RAM estimat: ${file.estimatedRequiredRamBytes / (1024L * 1024L)} MiB")
+                            Text("Dimensiune: ${if (file.sizeBytes > 0) "${file.sizeBytes / (1024L * 1024L)} MiB" else "necunoscută"}; RAM estimat: ${if (file.estimatedRequiredRamBytes > 0) "${file.estimatedRequiredRamBytes / (1024L * 1024L)} MiB" else "necunoscut"}")
                             Text("${file.status}: ${file.reason}", style = MaterialTheme.typography.bodySmall)
                             if (file.status == CompatibilityStatus.ESTIMATED && file.sizeBytes > 0) {
                                 Button(enabled = !downloading, onClick = {
