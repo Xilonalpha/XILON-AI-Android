@@ -16,15 +16,15 @@ For a human head choose type face. This produces a stylized procedural face, not
         val end = text.indexOf('}', start + 1)
         if (start < 0 || end < 0 || end - start > 1200) return null
         val raw = text.substring(start, end + 1)
-        val type = Regex(""""type"\\s*:\\s*"(face|sphere|cube|cylinder|cone)"""")
+        val type = Regex(""""type"\s*:\s*"(face|sphere|cube|cylinder|cone)"""")
             .find(raw)?.groupValues?.get(1) ?: return null
         fun color(name: String, fallback: String): String {
-            val value = Regex(""""$name"\\s*:\\s*"(#[a-fA-F0-9]{6})"""")
+            val value = Regex(""""$name"\s*:\s*"(#[a-fA-F0-9]{6})"""")
                 .find(raw)?.groupValues?.get(1) ?: fallback
             return value
         }
         fun dimension(name: String): Double {
-            val value = Regex(""""$name"\\s*:\\s*([0-9]+(?:\\.[0-9]+)?)""")
+            val value = Regex(""""$name"\s*:\s*([0-9]+(?:\.[0-9]+)?)""")
                 .find(raw)?.groupValues?.get(1)?.toDoubleOrNull() ?: 1.0
             return value.coerceIn(0.5, 2.0)
         }
