@@ -247,13 +247,29 @@ private fun ModelExplorer() {
     // A repository can contain multiple quantizations; the listing alone cannot
     // establish its size. Hide obviously oversized repositories by default,
     // while retaining an explicit option to inspect every search result.
-    val oversizedName = remember { Regex("(?i)(?:^|[^0-9])(?:[3-9][0-9]|[1-9][0-9]{2,})[._-]?[bB](?:[^a-zA-Z]|$)") }
-    val visibleModels = if (showAllCatalogModels) models else models.filterNot { oversizedName.containsMatchIn(it.id) }
+    val deviceMemory = remember(context) {
+        val manager = context.getSystemService(ActivityManager::class.java)
+        ActivityManager.MemoryInfo().also { manager.getMemoryInfo(it) }
+    }
+    // Repository metadata does not expose the size of each quantization.
+    // A Q4-class model typically needs roughly 0.6 GiB per billion parameters
+    // before runtime overhead. This is a conservative *listing* filter only.
+    val parameterPattern = remember { Regex("(?i)(?:^|[^a-z0-9])([0-9]{1,3}(?:[.,][0-9]+)?)[-_ ]?[bB](?:[^a-z0-9]|$)") }
+    val maxParameters = remember(deviceMemory.totalMem) {
+        ((deviceMemory.totalMem.toDouble() / (1024.0 * 1024.0 * 1024.0) - 1.5) / 0.65)
+            .coerceAtLeast(1.0)
+    }
+    val visibleModels = if (showAllCatalogModels) models else models.filter { model ->
+        val namedSizes = parameterPattern.findAll(model.id).mapNotNull {
+            it.groupValues[1].replace(',', '.').toDoubleOrNull()
+        }.toList()
+        namedSizes.isEmpty() || namedSizes.minOrNull()!! <= maxParameters
+    }
     Row(verticalAlignment = Alignment.CenterVertically) {
         Checkbox(checked = showAllCatalogModels, onCheckedChange = { showAllCatalogModels = it })
-        Text("Afișează și modelele foarte mari (30B+)")
+        Text("Afișează și modelele prea mari pentru RAM-ul telefonului")
     }
-    Text("${visibleModels.size} afișate din ${models.size} rezultate Hugging Face. Filtrarea după nume este orientativă; verifică fișierele GGUF pentru evaluarea RAM.", style = MaterialTheme.typography.bodySmall)
+    Text("${visibleModels.size} afișate din ${models.size} rezultate Hugging Face. Limită orientativă: ${"%.1f".format(maxParameters)}B parametri la cuantizare Q4. Modelele fără mărime în nume necesită verificarea fișierelor GGUF.", style = MaterialTheme.typography.bodySmall)
     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items(visibleModels, key = { it.id }) { model ->
             Card(Modifier.fillMaxWidth()) {
