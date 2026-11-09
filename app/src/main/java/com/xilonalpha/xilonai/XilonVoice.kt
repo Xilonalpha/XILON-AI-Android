@@ -16,7 +16,6 @@ import java.util.Locale
 class XilonVoice(private val context: Context) {
     private var recognizer: SpeechRecognizer? = null
     private var session = 0
-    private var listening = false
 
     fun available(): Boolean =
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
@@ -32,7 +31,6 @@ class XilonVoice(private val context: Context) {
         val currentSession = session
         val service = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
         recognizer = service
-        listening = true
         service.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) { if (currentSession == session) onStatus("Ascult offline…") }
             override fun onBeginningOfSpeech() { if (currentSession == session) onStatus("Te ascult…") }
@@ -75,8 +73,6 @@ class XilonVoice(private val context: Context) {
         }
     }
 
-    fun isListening(): Boolean = listening
-
     private fun errorMessage(code: Int): String = when (code) {
         SpeechRecognizer.ERROR_AUDIO -> "Eroare la captarea sunetului. Verifică microfonul."
         SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Permisiunea microfonului lipsește."
@@ -93,7 +89,6 @@ class XilonVoice(private val context: Context) {
     fun stop() {
         check(android.os.Looper.myLooper() == android.os.Looper.getMainLooper())
         session++
-        listening = false
         recognizer?.cancel()
         recognizer?.destroy()
         recognizer = null
