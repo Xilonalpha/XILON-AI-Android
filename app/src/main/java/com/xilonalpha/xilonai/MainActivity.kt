@@ -1010,11 +1010,11 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
                             LocalLlama.formatChat(roles.toTypedArray(), contents.toTypedArray())
                         }.getOrNull()
                         native ?: buildString {
-                            append(systemInstruction).append("\\n")
+                            append(systemInstruction).append("\n")
                             turns.forEach { (q, answer) ->
-                                append("User: ").append(q).append("\\nAssistant: ").append(answer).append("\\n")
+                                append("User: ").append(q).append("\nAssistant: ").append(answer).append("\n")
                             }
-                            append("User: ").append(modelPrompt).append("\\nAssistant:")
+                            append("User: ").append(modelPrompt).append("\nAssistant:")
                         }
                     },
                     countTokens = { text -> LocalLlama.countTokens(text) }
@@ -1058,11 +1058,11 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
                     currentPssMiB = memoryAfter.totalPssKiB / 1024.0
                     nativeHeapMiB = memoryAfter.nativeHeapKiB / 1024.0
                     rawCharacters = maxOf(rawCharacters, cleanedResult.getOrNull()?.length ?: 0)
-                    response = if (stopRequested.get()) "Generare oprită. Text parțial:\\n" + cleanedResult.getOrDefault(response) else cleanedResult.getOrElse { "Eroare: ${it.message}" }
+                    response = if (stopRequested.get()) "Generare oprită. Text parțial:\n" + cleanedResult.getOrDefault(response) else cleanedResult.getOrElse { "Eroare: ${it.message}" }
                     if (completed) {
                         chatHistory = nextHistory
                         prompt = ""
-                        if (saved?.isFailure == true) response += "\\nAtenție: istoricul nu a putut fi salvat local."
+                        if (saved?.isFailure == true) response += "\nAtenție: istoricul nu a putut fi salvat local."
                     }
                     pendingPrompt = null
                     busy = false
