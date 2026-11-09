@@ -485,6 +485,22 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
             runCatching { musicPlayer?.release() }
         }
     }
+    var detectedMusicBpm by remember { mutableStateOf<Int?>(null) }
+    var beatAnalysisStatus by remember { mutableStateOf("") }
+    androidx.compose.runtime.LaunchedEffect(selectedMusicUri) {
+        detectedMusicBpm = null
+        val uri = selectedMusicUri ?: return@LaunchedEffect
+        beatAnalysisStatus = "Analizez ritmul local..."
+        val result = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching { XilonBeatAnalyzer.estimateBpm(context, uri) }
+        }
+        detectedMusicBpm = result.getOrNull()
+        beatAnalysisStatus = when {
+            result.isFailure -> "Analiza ritmului a eșuat: ${result.exceptionOrNull()?.message}"
+            detectedMusicBpm == null -> "Ritmul nu a putut fi estimat; folosesc BPM-ul scenei."
+            else -> "Ritm estimat local: ${detectedMusicBpm} BPM (aproximativ)."
+        }
+    }
     var musicPositionMs by remember { mutableStateOf<Long?>(null) }
     androidx.compose.runtime.LaunchedEffect(musicPlayer) {
         while (musicPlayer != null) {
@@ -506,6 +522,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
                         OutlinedButton(onClick = { musicPicker.launch(arrayOf("audio/*")) }) {
                             Text(if (selectedMusicUri == null) "Alege melodia locală" else "Schimbă melodia")
                         }
+                        if (beatAnalysisStatus.isNotBlank()) Text(beatAnalysisStatus)
                         if (musicPlayer != null) {
                             Row {
                                 OutlinedButton(onClick = {
@@ -521,14 +538,14 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
                                     }
                                 }) { Text("De la început") }
                             }
-                            Text("Animația urmărește poziția MediaPlayer (actualizare la 50 ms). Analiza ritmului și exportul MP4 urmează.",
+                            Text("Animația urmărește MediaPlayer (actualizare la 50 ms), iar ritmul estimat ajustează dansul. Exportul MP4 urmează.",
                                 style = MaterialTheme.typography.bodySmall)
                         }
                         if (musicPlaybackError.isNotBlank()) Text(musicPlaybackError)
                     }
                     Spacer(Modifier.height(8.dp))
                     Box(Modifier.fillMaxWidth().height(360.dp)) {
-                        XilonHtmlPreview(html, musicPositionMs = if (XilonMusicVideo.parse(response) != null || chatHistory.lastOrNull()?.second?.let { XilonMusicVideo.parse(it) } != null) musicPositionMs else null, onSceneGlb = { bytes, error ->
+                        XilonHtmlPreview(html, musicPositionMs = if (XilonMusicVideo.parse(response) != null || chatHistory.lastOrNull()?.second?.let { XilonMusicVideo.parse(it) } != null) musicPositionMs else null, musicBpm = detectedMusicBpm, onSceneGlb = { bytes, error ->
                             if (bytes != null) {
                                 pendingGlb = bytes
                                 glbSaver.launch("xilon-scena-three.glb")
