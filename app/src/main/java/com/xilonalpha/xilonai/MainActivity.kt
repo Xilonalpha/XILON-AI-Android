@@ -80,6 +80,7 @@ private fun XilonTheme(content: @Composable () -> Unit) {
 @Composable
 private fun XilonHome() {
     var selected by remember { mutableIntStateOf(0) }
+    var downloadedModelsRevision by remember { mutableIntStateOf(0) }
     val tabs = listOf("Chat", "Modele", "Dispozitiv", "Instrumente")
     val icons = listOf(Icons.Filled.ChatBubbleOutline, Icons.Filled.Memory, Icons.Filled.PhoneAndroid, Icons.Filled.Build)
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -132,13 +133,13 @@ private fun XilonHome() {
             // generation must not be forgotten when navigating away from Chat.
             Box(Modifier.fillMaxSize()) {
                 Box(if (selected == 0 || selected == 3) Modifier.fillMaxSize() else Modifier.size(0.dp)) {
-                    InstalledModelsScreen(toolsVisible = selected == 3)
+                    InstalledModelsScreen(toolsVisible = selected == 3, downloadRevision = downloadedModelsRevision)
                 }
                 if (selected == 1) {
                     Column(
                         Modifier.fillMaxSize().padding(horizontal = 18.dp, vertical = 12.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) { ModelExplorer() }
+                    ) { ModelExplorer(onModelDownloaded = { downloadedModelsRevision++ }) }
                 } else if (selected == 2) {
                     Column(
                         Modifier.fillMaxSize().verticalScroll(rememberScrollState())
@@ -153,7 +154,7 @@ private fun XilonHome() {
 }
 
 @Composable
-private fun ModelExplorer() {
+private fun ModelExplorer(onModelDownloaded: () -> Unit) {
     var models by remember { mutableStateOf<List<HubModel>>(emptyList()) }
     var showAllCatalogModels by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -350,6 +351,7 @@ private fun ModelExplorer() {
                                             }, isCancelled = { cancelDownload.get() })
                                             (context as ComponentActivity).runOnUiThread {
                                                 downloadStatus = "Salvat: ${result.file.name} (SHA-256: ${result.sha256.take(12)}...)"
+                                                onModelDownloaded()
                                                 downloading = false
                                             }
                                         } catch (e: Exception) {
@@ -396,7 +398,7 @@ private fun DeviceInfo() {
 }
 
 @Composable
-private fun InstalledModelsScreen(toolsVisible: Boolean) {
+private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) {
     val context = LocalContext.current
     var speechStatus by remember { mutableStateOf("") }
     val speech = remember(context) { XilonSpeech(context) { speechStatus = it } }
@@ -578,7 +580,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
     val suggestedModel = remember(revision, prompt) {
         XilonCore.suggestModel(taskDecision.task, InstalledModels.list(context).map { it.name })
     }
-    val models = remember(revision) { InstalledModels.list(context) }
+    val models = remember(revision, downloadRevision) { InstalledModels.list(context) }
     Column(Modifier.fillMaxSize().imePadding()) {
         Column(
             Modifier.weight(1f).fillMaxWidth().verticalScroll(chatScrollState)
