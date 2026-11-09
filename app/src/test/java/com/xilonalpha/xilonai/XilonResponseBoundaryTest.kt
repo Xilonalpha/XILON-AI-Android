@@ -28,4 +28,8 @@ class XilonResponseBoundaryTest {
         assertEquals("Bună ziua", XilonResponseBoundary.clean(
             "Bună ziua<|eot_id|><|start_header_id|>user"))
     }
+    @Test fun removesOrphanClosingThinkAfterQwenPrefill() {
+        assertEquals("Salut! Cu ce te pot ajuta?",
+            XilonResponseBoundary.clean("</think>\nSalut! Cu ce te pot ajuta?"))
+    }
 }
