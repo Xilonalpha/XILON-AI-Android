@@ -8,7 +8,7 @@ class XilonMusicVideoTest {
         val html = XilonMusicVideo.html("""{"type":"music_video","characters":2,"theme":"neon","bpm":120,"duration":30}""")
         assertNotNull(html)
         assertTrue(html!!.contains("three.min.js"))
-        assertTrue(html.contains("const bpm=120,duration=30"))
+        assertTrue(html.contains("let bpm=120;const duration=30"))
         assertTrue(html.contains("dancers.push"))
     }
 
