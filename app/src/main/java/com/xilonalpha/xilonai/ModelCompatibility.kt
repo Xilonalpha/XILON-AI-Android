@@ -15,7 +15,8 @@ data class GgufCandidate(
     val estimatedRequiredRamBytes: Long,
     val status: CompatibilityStatus,
     val reason: String,
-    val expectedSha256: String?
+    val expectedSha256: String?,
+    val revision: String
 )
 
 enum class CompatibilityStatus { ESTIMATED, TOO_LARGE, UNKNOWN }
@@ -32,38 +33,73 @@ object ModelCompatibility {
         val url = "https://huggingface.co/api/models/$encodedId?blobs=true"
         val response = getJson(url)
         val siblings = response.optJSONArray("siblings") ?: JSONArray()
+        val revision = response.optString("sha")
+        require(revision.matches(Regex("[a-fA-F0-9]{40}"))) { "Missing immutable Hugging Face revision" }
         val manager = context.getSystemService(ActivityManager::class.java)
         val mem = ActivityManager.MemoryInfo().also(manager::getMemoryInfo)
         val storage = StatFs(context.filesDir.absolutePath).availableBytes
         val is64 = Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()
-        return (0 until siblings.length()).mapNotNull { index ->
+        // Use both total device RAM and currently available memory; Android may reclaim
+        // cached pages, so this remains an estimate rather than a hard admission test.
+        val conservativeRamBudget = minOf(mem.totalMem * 75L / 100L,
+            mem.availMem * 85L / 100L)
+        val storageBudget = (storage - 256L * MIB).coerceAtLeast(0L)
+        var metadataLookups = 0
+        val discovered = (0 until siblings.length()).mapNotNull { index ->
             val item = siblings.optJSONObject(index) ?: return@mapNotNull null
             val filename = item.optString("rfilename")
             if (!filename.endsWith(".gguf", ignoreCase = true)) return@mapNotNull null
+            // Importance matrices and auxiliary quantization data are not runnable models.
+            val analysis = ModelIntelligence.analyze(filename)
+            if (!analysis.runnableCandidate) return@mapNotNull null
             val lfs = item.optJSONObject("lfs")
             val size = when {
-                item.has("size") && !item.isNull("size") -> item.optLong("size", -1L)
-                lfs != null && lfs.has("size") -> lfs.optLong("size", -1L)
-                else -> -1L
+                item.optLong("size", -1L) > 0L -> item.optLong("size", -1L)
+                lfs != null && lfs.optLong("size", -1L) > 0L -> lfs.optLong("size", -1L)
+                else -> if (metadataLookups++ < 8) resolveFileSize(modelId, filename, revision) else -1L
             }
             // Conservative heuristic, not a runtime memory guarantee:
             // weights + 35% for working buffers + 512 MiB fixed overhead.
             val estimated = if (size > 0 && size <= (Long.MAX_VALUE - 512L * MIB) / 2L)
                 size + size * 35L / 100L + 512L * MIB else -1L
             val status = when {
+                !is64 -> CompatibilityStatus.TOO_LARGE
                 size <= 0L || estimated <= 0L -> CompatibilityStatus.UNKNOWN
-                !is64 || size > storage || estimated > mem.totalMem * 75L / 100L ->
+                size > storageBudget || estimated > conservativeRamBudget ->
                     CompatibilityStatus.TOO_LARGE
                 else -> CompatibilityStatus.ESTIMATED
             }
             val reason = when (status) {
                 CompatibilityStatus.UNKNOWN -> "File size unavailable; cannot estimate"
-                CompatibilityStatus.TOO_LARGE -> "64-bit ABI, free storage or conservative RAM budget insufficient"
-                CompatibilityStatus.ESTIMATED -> "Resource estimate only; runtime architecture not verified"
+                CompatibilityStatus.TOO_LARGE -> if (!is64)
+                    "Motorul GGUF necesită un dispozitiv Android pe 64 de biți"
+                else "Resurse insuficiente acum: RAM disponibil estimat ${conservativeRamBudget / MIB} MiB; spațiu utilizabil ${storageBudget / MIB} MiB"
+                CompatibilityStatus.ESTIMATED -> "Cuantizare: ${analysis.quantization ?: "necunoscută"}; RAM estimat, arhitectură neverificată"
             }
             GgufCandidate(filename, size, estimated, status, reason,
-                lfs?.optString("oid")?.removePrefix("sha256:")?.takeIf { it.matches(Regex("[a-fA-F0-9]{64}")) })
-        }.sortedWith(compareBy({ it.status != CompatibilityStatus.ESTIMATED }, { it.sizeBytes.takeIf { n -> n > 0 } ?: Long.MAX_VALUE }))
+                lfs?.optString("oid")?.removePrefix("sha256:")?.takeIf { it.matches(Regex("[a-fA-F0-9]{64}")) }, revision)
+        }
+        return ModelRecommender.rank(discovered, mem.availMem).map { it.candidate }
+    }
+
+    private fun resolveFileSize(modelId: String, filename: String, revision: String): Long {
+        val encodedPath = filename.split("/").joinToString("/") {
+            java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20")
+        }
+        val connection = URL("https://huggingface.co/$modelId/resolve/$revision/$encodedPath").openConnection() as HttpURLConnection
+        connection.requestMethod = "HEAD"
+        connection.connectTimeout = 5000
+        connection.readTimeout = 5000
+        try {
+            if (connection.responseCode !in 200..299) return -1L
+            val linked = connection.getHeaderField("X-Linked-Size")?.toLongOrNull()
+            val length = connection.getHeaderField("Content-Length")?.toLongOrNull()
+            return linked?.takeIf { it > 0L } ?: length?.takeIf { it > 0L } ?: -1L
+        } catch (_: Exception) {
+            return -1L
+        } finally {
+            connection.disconnect()
+        }
     }
 
     private fun getJson(endpoint: String): JSONObject {

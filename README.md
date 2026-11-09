@@ -22,3 +22,12 @@ Independent Android application for discovering and eventually running local AI 
 
 ## Build
 Use JDK 17, Android SDK 35 and Gradle 8.10.2. The GitHub Actions workflow attempts `gradle --no-daemon :app:assembleDebug`. Gradle wrapper scripts are not yet included.
+
+## Experimental llama.cpp integration (feature/llama-native)
+This branch adds a pinned llama.cpp b5500 CMake dependency, a JNI CPU inference bridge, and basic model load/generate controls. It is intentionally separate from main until CI and real-device tests pass.
+
+Known limitations:
+- Only a single model/session; serialized native calls and basic greedy decoding.
+- No model-specific chat template, multi-turn context, token streaming, GPU acceleration or lifecycle-aware service.
+- Native llama.cpp build increases CI time and APK size.
+- No confirmation that this branch builds or runs yet. Do not merge until validated.

@@ -1,8 +1,13 @@
 name: Android debug APK
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
+
+concurrency:
+  group: android-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -41,6 +46,8 @@ jobs:
           gradle-version: '8.10.2'
       - name: Compile APK
         run: gradle --no-daemon --stacktrace :app:assembleDebug
+      - name: Run unit tests
+        run: gradle --no-daemon :app:testDebugUnitTest
       - name: Run Android lint
         run: gradle --no-daemon :app:lintDebug
       - name: Verify native libraries and APK
