@@ -155,6 +155,7 @@ private fun XilonHome() {
 @Composable
 private fun ModelExplorer() {
     var models by remember { mutableStateOf<List<HubModel>>(emptyList()) }
+    var showAllCatalogModels by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
     var newest by remember { mutableStateOf(true) }
@@ -243,8 +244,16 @@ private fun ModelExplorer() {
     }
     if (loading) LinearProgressIndicator(Modifier.fillMaxWidth())
     error?.let { Text("Eroare: $it", color = MaterialTheme.colorScheme.error) }
-    val visibleModels = models
-    Text("${visibleModels.size} rezultate primite de la Hugging Face (maximum 100 per cerere). Verifică fișierele pentru a afla dacă un model încape pe telefon.", style = MaterialTheme.typography.bodySmall)
+    // A repository can contain multiple quantizations; the listing alone cannot
+    // establish its size. Hide obviously oversized repositories by default,
+    // while retaining an explicit option to inspect every search result.
+    val oversizedName = remember { Regex("(?i)(?:^|[^0-9])(?:[3-9][0-9]|[1-9][0-9]{2,})[._-]?[bB](?:[^a-zA-Z]|$)") }
+    val visibleModels = if (showAllCatalogModels) models else models.filterNot { oversizedName.containsMatchIn(it.id) }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Checkbox(checked = showAllCatalogModels, onCheckedChange = { showAllCatalogModels = it })
+        Text("Afișează și modelele foarte mari (30B+)")
+    }
+    Text("${visibleModels.size} afișate din ${models.size} rezultate Hugging Face. Filtrarea după nume este orientativă; verifică fișierele GGUF pentru evaluarea RAM.", style = MaterialTheme.typography.bodySmall)
     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items(visibleModels, key = { it.id }) { model ->
             Card(Modifier.fillMaxWidth()) {
