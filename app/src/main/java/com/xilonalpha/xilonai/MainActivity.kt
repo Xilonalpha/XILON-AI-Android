@@ -660,8 +660,8 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
         }
         // Surface the generated scene directly in chat, not only inside hidden 3D tools.
         val readySceneHtml = if (!busy) {
-            XilonStructured3d.html(response) ?: XilonHtmlExport.extract(response)
-                ?: chatHistory.lastOrNull()?.second?.let { XilonStructured3d.html(it) ?: XilonHtmlExport.extract(it) }
+            XilonMusicVideo.html(response) ?: XilonStructured3d.html(response) ?: XilonHtmlExport.extract(response)
+                ?: chatHistory.lastOrNull()?.second?.let { XilonMusicVideo.html(it) ?: XilonStructured3d.html(it) ?: XilonHtmlExport.extract(it) }
         } else null
         if (readySceneHtml != null) {
             Button(onClick = { previewHtml = readySceneHtml }) {
@@ -1026,7 +1026,8 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
                     tokenBudget = 4096 - outputLimit,
                     render = { turns ->
                         val roles = mutableListOf("system")
-                        val systemInstruction = if (submittedTask == XilonCore.Task.THREE_D)
+                        val systemInstruction = if ((submitted.contains("videoclip", ignoreCase = true) || submitted.contains("music video", ignoreCase = true))) XilonMusicVideo.instruction
+                        else if (submittedTask == XilonCore.Task.THREE_D)
                             XilonStructured3d.instruction
                         else "You are XILON AI, a helpful offline assistant. Give the final answer directly and concisely. Respond in the same language as the latest user message (Romanian when the user writes Romanian); do not switch languages without a request. If your chat template supports optional reasoning, prefer the non-thinking mode for ordinary requests. Never include internal reasoning or role delimiters in the final answer."
                         val contents = mutableListOf(systemInstruction)
