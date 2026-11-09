@@ -41,6 +41,7 @@ object ModelCompatibility {
         val conservativeRamBudget = minOf(mem.totalMem * 75L / 100L,
             mem.availMem * 85L / 100L)
         val storageBudget = (storage - 256L * MIB).coerceAtLeast(0L)
+        var metadataLookups = 0
         val discovered = (0 until siblings.length()).mapNotNull { index ->
             val item = siblings.optJSONObject(index) ?: return@mapNotNull null
             val filename = item.optString("rfilename")
@@ -52,7 +53,7 @@ object ModelCompatibility {
             val size = when {
                 item.optLong("size", -1L) > 0L -> item.optLong("size", -1L)
                 lfs != null && lfs.optLong("size", -1L) > 0L -> lfs.optLong("size", -1L)
-                else -> resolveFileSize(modelId, filename)
+                else -> if (metadataLookups++ < 8) resolveFileSize(modelId, filename) else -1L
             }
             // Conservative heuristic, not a runtime memory guarantee:
             // weights + 35% for working buffers + 512 MiB fixed overhead.
