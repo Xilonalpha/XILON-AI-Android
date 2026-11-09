@@ -38,6 +38,13 @@ object XilonActions {
 
     fun propose(text: String): Proposal? {
         val q = text.trim().lowercase(java.util.Locale.ROOT)
+        // A negated request is not permission to perform a device action.
+        // Preserve explicit message/search payloads: their text may contain "nu".
+        val explicitPayload = listOf("trimite pe whatsapp:", "trimite prin whatsapp:",
+            "share on whatsapp:", "mesaj whatsapp:", "caută pe youtube:",
+            "cauta pe youtube:", "youtube search:").any(q::startsWith)
+        if (!explicitPayload && (q.startsWith("nu ") || q.startsWith("te rog nu ") ||
+                q.startsWith("please don't ") || q.startsWith("do not "))) return null
         // Questions and explanations must never trigger an Android side effect.
         // Only explicitly phrased commands are eligible for direct dispatch.
         if ((q.endsWith("?") && !listOf("trimite pe whatsapp:", "trimite prin whatsapp:", "share on whatsapp:", "mesaj whatsapp:", "caută pe youtube:", "cauta pe youtube:", "youtube search:").any(q::startsWith)) || q.startsWith("cum ") || q.startsWith("de ce ") ||
