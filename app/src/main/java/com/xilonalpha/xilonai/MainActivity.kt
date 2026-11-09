@@ -261,7 +261,9 @@ private fun ModelExplorer() {
         ((deviceMemory.totalMem.toDouble() / (1024.0 * 1024.0 * 1024.0) - 1.5) / 0.65)
             .coerceAtLeast(1.0)
     }
+    val is64BitDevice = Build.SUPPORTED_64_BIT_ABIS.isNotEmpty()
     val visibleModels = if (showAllCatalogModels) models else models.filter { model ->
+        if (!is64BitDevice) return@filter false
         val namedSizes = parameterPattern.findAll(model.id).mapNotNull {
             it.groupValues[1].replace(',', '.').toDoubleOrNull()
         }.toList()
@@ -271,6 +273,7 @@ private fun ModelExplorer() {
         Checkbox(checked = showAllCatalogModels, onCheckedChange = { showAllCatalogModels = it })
         Text("Afișează și modelele prea mari pentru RAM-ul telefonului")
     }
+    if (!is64BitDevice) Text("Motorul GGUF actual necesită Android pe 64 de biți.", color = MaterialTheme.colorScheme.error)
     Text("${visibleModels.size} afișate din ${models.size} rezultate Hugging Face. Limită orientativă: ${"%.1f".format(maxParameters)}B parametri la cuantizare Q4. Modelele fără mărime în nume necesită verificarea fișierelor GGUF.", style = MaterialTheme.typography.bodySmall)
     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items(visibleModels, key = { it.id }) { model ->
