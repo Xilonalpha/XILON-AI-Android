@@ -140,11 +140,11 @@ static jstring generate_impl(JNIEnv* env, jstring prompt, jint max_tokens, jobje
     const int available = static_cast<int>(llama_n_ctx(context));
     // Do not truncate raw tokens: this can break special role markers and chat templates.
     // The Kotlin conversation builder must remove whole turns before generation.
-    if (count + limit > available)
+    if (count > available || limit > available - count)
         return fail(env, "Context limit exceeded: shorten conversation");
     const int effective_count = count;
     __android_log_print(ANDROID_LOG_INFO, "XilonInference", "prompt_tokens=%d context=%d max_output=%d", count, available, limit);
-    llama_memory_clear(llama_get_memory(context), true);
+    // Reset KV state between independent prompts; never leak a previous chat\n    // into a new model-formatted request. The context belongs to this model.\n    llama_memory_clear(llama_get_memory(context), true);
     const auto prompt_start = Clock::now();
     const int chunk = 256;
     for (int i = 0; i < effective_count; i += chunk) {
@@ -219,7 +219,7 @@ static jstring generate_impl(JNIEnv* env, jstring prompt, jint max_tokens, jobje
     if (env->ExceptionCheck()) return nullptr;
     last_decode_ms = millis(decode_start);
     __android_log_print(ANDROID_LOG_INFO, "XilonInference", "decode_ms=%lld generated_tokens=%d", last_decode_ms, last_generated_tokens);
-    if (decode_failed) return fail(env, "Token decoding failed");
+    if (decode_failed) {\n        llama_memory_clear(llama_get_memory(context), true);\n        return fail(env, "Token decoding failed");\n    }
     if (piece_failed) return fail(env, "Token text conversion failed");
     return unicode(env, output);
 }
