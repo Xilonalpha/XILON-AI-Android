@@ -121,7 +121,6 @@ Java_com_xilonalpha_xilonai_LocalLlama_unload(JNIEnv*, jobject) {
 
 static jstring generate_impl(JNIEnv* env, jstring prompt, jint max_tokens, jobject callback) {
     std::lock_guard<std::mutex> lock(guard);
-    stop_requested.store(false);
     last_prompt_ms = last_decode_ms = -1;
     last_generated_tokens = 0;
     if (!model || !context) return fail(env, "Model not loaded");
@@ -243,6 +242,11 @@ static jstring generate_impl(JNIEnv* env, jstring prompt, jint max_tokens, jobje
         return fail(env, "Token text conversion failed");
     }
     return unicode(env, output);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_xilonalpha_xilonai_LocalLlama_prepareGeneration(JNIEnv*, jobject) {
+    stop_requested.store(false);
 }
 
 extern "C" JNIEXPORT void JNICALL
