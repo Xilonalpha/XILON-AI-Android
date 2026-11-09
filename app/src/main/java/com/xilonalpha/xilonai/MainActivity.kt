@@ -733,11 +733,12 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
                         runCatching { NativeGgufProbe.inspect(model) }.getOrNull()
                     }
                     Text(if (header != null) "GGUF v${header.version} · ${header.tensorCount} tensori · ${header.metadataCount} metadate" else "GGUF: antet invalid sau bibliotecă nativă indisponibilă")
+                    if (activeModel == model.name) Text("Model activ în memorie", color = MaterialTheme.colorScheme.secondary)
                     val analysis = ModelIntelligence.analyze(model.name)
                     val auxiliary = !analysis.runnableCandidate
                     if (auxiliary) Text(analysis.reason, color = MaterialTheme.colorScheme.error)
                     else Text("Cuantizare: ${analysis.quantization ?: "necunoscută"} · compatibilitate neconfirmată", style = MaterialTheme.typography.bodySmall)
-                    Button(enabled = !busy && !auxiliary, onClick = {
+                    Button(enabled = !busy && !importBusy && !auxiliary && header != null && activeModel != model.name, onClick = {
                         busy = true
                         loadingModel = model.name
                         response = "Se încarcă modelul în memoria telefonului..."
@@ -765,7 +766,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
                                 loadingModel = null
                             }
                         }
-                    }) { Icon(Icons.Filled.PlayArrow, null); Spacer(Modifier.width(6.dp)); Text(if (loadingModel == model.name) "Se încarcă…" else "Încarcă pentru chat") }
+                    }) { Icon(Icons.Filled.PlayArrow, null); Spacer(Modifier.width(6.dp)); Text(when { loadingModel == model.name -> "Se încarcă…"; activeModel == model.name -> "Model activ"; header == null -> "GGUF invalid"; else -> "Încarcă pentru chat" }) }
                     TextButton(enabled = !busy && !importBusy, onClick = { confirmDelete = model.name }) { Icon(Icons.Filled.DeleteOutline, null); Spacer(Modifier.width(6.dp)); Text("Șterge modelul") }
                 }
             }
