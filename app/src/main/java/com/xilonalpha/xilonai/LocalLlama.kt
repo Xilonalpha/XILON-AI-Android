@@ -11,6 +11,8 @@ object LocalLlama {
     external fun generate(prompt: String, maxTokens: Int): String
     /** Emits cumulative partial text from the native inference thread. */
     external fun requestStop()
+    /** Clear cancellation before scheduling inference, never inside generation. */
+    external fun prepareGeneration()
     external fun generateStreaming(prompt: String, maxTokens: Int, onUpdate: (String) -> Unit): String
     /** Tokenizes output using the active model vocabulary. Must run off the UI thread. */
     external fun countTokens(text: String): Int
