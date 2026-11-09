@@ -150,8 +150,7 @@ static jstring generate_impl(JNIEnv* env, jstring prompt, jint max_tokens, jobje
     for (int i = 0; i < effective_count; i += chunk) {
         if (stop_requested.load()) return fail(env, "Generation cancelled");
         const int n = std::min(chunk, effective_count - i);
-        if (llama_decode(context, llama_batch_get_one(tokens.data() + i, n)) != 0)
-            return fail(env, "Prompt evaluation failed");
+        if (llama_decode(context, llama_batch_get_one(tokens.data() + i, n)) != 0) {\n            llama_memory_clear(llama_get_memory(context), true);\n            return fail(env, "Prompt evaluation failed");\n        }
     }
     last_prompt_ms = millis(prompt_start);
     __android_log_print(ANDROID_LOG_INFO, "XilonInference", "prompt_evaluated_ms=%lld", last_prompt_ms);
@@ -220,7 +219,7 @@ static jstring generate_impl(JNIEnv* env, jstring prompt, jint max_tokens, jobje
     last_decode_ms = millis(decode_start);
     __android_log_print(ANDROID_LOG_INFO, "XilonInference", "decode_ms=%lld generated_tokens=%d", last_decode_ms, last_generated_tokens);
     if (decode_failed) {\n        llama_memory_clear(llama_get_memory(context), true);\n        return fail(env, "Token decoding failed");\n    }
-    if (piece_failed) return fail(env, "Token text conversion failed");
+    if (piece_failed) {\n        llama_memory_clear(llama_get_memory(context), true);\n        return fail(env, "Token text conversion failed");\n    }
     return unicode(env, output);
 }
 
