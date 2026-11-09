@@ -972,6 +972,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
                 prompt = ""
             } else {
             stopRequested.set(false)
+            LocalLlama.prepareGeneration()
             generationStartedAt = android.os.SystemClock.elapsedRealtime()
             generationElapsedMs = 0L
             generatedCharacters = 0
