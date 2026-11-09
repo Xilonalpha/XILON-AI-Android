@@ -357,7 +357,6 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
     DisposableEffect(speech) { onDispose { speech.close() } }
     val voice = remember(context) { XilonVoice(context) }
     var voiceStatus by remember { mutableStateOf("") }
-    var listening by remember { mutableStateOf(false) }
     DisposableEffect(voice) { onDispose { voice.stop() } }
     var revision by remember { mutableIntStateOf(0) }
     var confirmDelete by remember { mutableStateOf<String?>(null) }
@@ -481,8 +480,8 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
         if (granted) {
             runCatching {
                 voice.listen(
-                    onText = { prompt = it; listening = false },
-                    onStatus = { voiceStatus = it; listening = false }
+                    onText = { prompt = it },
+                    onStatus = { voiceStatus = it }
                 )
             }.onFailure { voiceStatus = "Microfon indisponibil: ${it.message}" }
         } else voiceStatus = "Permisiunea pentru microfon a fost refuzată."
@@ -898,12 +897,12 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
                         Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
                     runCatching {
                         voice.listen(
-                    onText = { prompt = it; listening = false },
-                    onStatus = { voiceStatus = it; listening = false }
+                    onText = { prompt = it },
+                    onStatus = { voiceStatus = it }
                 )
                     }.onFailure { voiceStatus = "Eroare voce: ${it.message}" }
                 } else microphonePermission.launch(Manifest.permission.RECORD_AUDIO)
-            }) { Text(if (listening) "🎙 Ascultă…" else "🎙 Vorbește") }
+            }) { Text("🎙 Vorbește") }
             if (voiceStatus.isNotBlank()) {
                 Text(voiceStatus, style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.weight(1f))
