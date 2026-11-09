@@ -150,7 +150,10 @@ static jstring generate_impl(JNIEnv* env, jstring prompt, jint max_tokens, jobje
     const auto prompt_start = Clock::now();
     const int chunk = 256;
     for (int i = 0; i < effective_count; i += chunk) {
-        if (stop_requested.load()) return fail(env, "Generation cancelled");
+        if (stop_requested.load()) {
+            llama_memory_clear(llama_get_memory(context), true);
+            return fail(env, "Generation cancelled");
+        }
         const int n = std::min(chunk, effective_count - i);
         if (llama_decode(context, llama_batch_get_one(tokens.data() + i, n)) != 0) {
             llama_memory_clear(llama_get_memory(context), true);
@@ -161,7 +164,10 @@ static jstring generate_impl(JNIEnv* env, jstring prompt, jint max_tokens, jobje
     __android_log_print(ANDROID_LOG_INFO, "XilonInference", "prompt_evaluated_ms=%lld", last_prompt_ms);
     const auto decode_start = Clock::now();
     llama_sampler* sampler = llama_sampler_init_greedy();
-    if (!sampler) return fail(env, "Sampler initialization failed");
+    if (!sampler) {
+        llama_memory_clear(llama_get_memory(context), true);
+        return fail(env, "Sampler initialization failed");
+    }
     jclass callbackClass = nullptr;
     jmethodID callbackMethod = nullptr;
     if (callback) {
@@ -220,7 +226,10 @@ static jstring generate_impl(JNIEnv* env, jstring prompt, jint max_tokens, jobje
     }
     llama_sampler_free(sampler);
     if (callbackClass) env->DeleteLocalRef(callbackClass);
-    if (env->ExceptionCheck()) return nullptr;
+    if (env->ExceptionCheck()) {
+        llama_memory_clear(llama_get_memory(context), true);
+        return nullptr;
+    }
     last_decode_ms = millis(decode_start);
     __android_log_print(ANDROID_LOG_INFO, "XilonInference", "decode_ms=%lld generated_tokens=%d", last_decode_ms, last_generated_tokens);
     if (decode_failed) {
