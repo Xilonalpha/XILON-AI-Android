@@ -14,10 +14,10 @@ Do not output HTML, JavaScript or markdown."""
         val end = text.indexOf('}', start + 1)
         if (start < 0 || end <= start || end - start > 800) return null
         val json = text.substring(start, end + 1)
-        if (!Regex(""""type"\\s*:\\s*"music_video"""").containsMatchIn(json)) return null
+        if (!Regex(""""type"\s*:\s*"music_video"""").containsMatchIn(json)) return null
         fun number(key: String, fallback: Int): Int =
-            Regex(""""$key"\\s*:\\s*(\\d+)""").find(json)?.groupValues?.get(1)?.toIntOrNull() ?: fallback
-        val theme = Regex(""""theme"\\s*:\\s*"(neon|sunset|space)"""")
+            Regex(""""$key"\s*:\s*(\d+)""").find(json)?.groupValues?.get(1)?.toIntOrNull() ?: fallback
+        val theme = Regex(""""theme"\s*:\s*"(neon|sunset|space)"""")
             .find(json)?.groupValues?.get(1) ?: "neon"
         return Scene(number("characters", 2).coerceIn(1, 3), theme,
             number("bpm", 120).coerceIn(60, 180), number("duration", 30).coerceIn(5, 60))
