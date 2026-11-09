@@ -165,6 +165,7 @@ private fun ModelExplorer() {
     var candidates by remember { mutableStateOf<List<GgufCandidate>>(emptyList()) }
     var candidateError by remember { mutableStateOf<String?>(null) }
     var inspecting by remember { mutableStateOf(false) }
+    val inspectionVersion = remember { java.util.concurrent.atomic.AtomicInteger(0) }
     var downloadStatus by remember { mutableStateOf("") }
     var downloadProgress by remember { mutableFloatStateOf(0f) }
     var downloading by remember { mutableStateOf(false) }
@@ -201,6 +202,7 @@ private fun ModelExplorer() {
                     (context as ComponentActivity).runOnUiThread {
                         if (requestVersion.get() == requestId) {
                             models = parsed
+                            inspectionVersion.incrementAndGet()
                             selectedModel = null
                             candidates = emptyList()
                             loading = false
@@ -279,6 +281,7 @@ private fun ModelExplorer() {
                     Text("Actualizat: ${model.updated.take(10)}")
                     Text("Compatibilitate: neverificată", style = MaterialTheme.typography.bodySmall)
                     TextButton(onClick = {
+                        val inspectionId = inspectionVersion.incrementAndGet()
                         selectedModel = model.id
                         candidates = emptyList()
                         candidateError = null
@@ -287,11 +290,11 @@ private fun ModelExplorer() {
                             try {
                                 val result = ModelCompatibility.candidates(context, model.id)
                                 (context as ComponentActivity).runOnUiThread {
-                                    if (selectedModel == model.id) { candidates = result; inspecting = false }
+                                    if (selectedModel == model.id && inspectionVersion.get() == inspectionId) { candidates = result; inspecting = false }
                                 }
                             } catch (e: Exception) {
                                 (context as ComponentActivity).runOnUiThread {
-                                    if (selectedModel == model.id) { candidateError = e.message; inspecting = false }
+                                    if (selectedModel == model.id && inspectionVersion.get() == inspectionId) { candidateError = e.message; inspecting = false }
                                 }
                             }
                         }
