@@ -1130,9 +1130,9 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
             }
             LinearProgressIndicator(Modifier.fillMaxWidth())
             if (showGenerationDetails) {
-                if (rawCharacters >= 512 && generatedCharacters == 0) {
+                if (rawCharacters > 0 && generatedCharacters == 0) {
                     Text(
-                        "Modelul generează încă text intern (posibil <think>), fără răspuns afișabil. " +
+                        "Modelul produce text, dar acesta este ascuns de filtrul de raționament sau delimitatori. " +
                             "Poți opri generarea sau încerca un model/mod fără raționament extins.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error
