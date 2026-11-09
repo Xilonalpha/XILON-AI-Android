@@ -26,13 +26,20 @@ import java.io.ByteArrayInputStream
  */
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-fun XilonHtmlPreview(html: String, musicPositionMs: Long? = null, onSceneGlb: ((ByteArray?, String?) -> Unit)? = null, onSceneObj: ((String?, String?) -> Unit)? = null) {
+fun XilonHtmlPreview(html: String, musicPositionMs: Long? = null, musicBpm: Int? = null, onSceneGlb: ((ByteArray?, String?) -> Unit)? = null, onSceneObj: ((String?, String?) -> Unit)? = null) {
     var currentWebView by remember { mutableStateOf<WebView?>(null) }
     androidx.compose.runtime.LaunchedEffect(musicPositionMs, currentWebView) {
         if (musicPositionMs != null) {
             currentWebView?.evaluateJavascript(
                 "window.xilonSetMusicTime && window.xilonSetMusicTime(" +
                     musicPositionMs.coerceAtLeast(0L).toString() + ");", null
+            )
+        }
+    }
+    androidx.compose.runtime.LaunchedEffect(musicBpm, currentWebView) {
+        if (musicBpm != null && musicBpm in 60..180) {
+            currentWebView?.evaluateJavascript(
+                "window.xilonSetBpm && window.xilonSetBpm(" + musicBpm + ");", null
             )
         }
     }
