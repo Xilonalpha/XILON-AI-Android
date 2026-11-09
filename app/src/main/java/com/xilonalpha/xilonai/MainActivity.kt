@@ -327,8 +327,9 @@ private fun ModelExplorer() {
 private fun DeviceInfo() {
     val context = LocalContext.current
     val manager = context.getSystemService(ActivityManager::class.java)
-    val memory = remember { ActivityManager.MemoryInfo().also { manager.getMemoryInfo(it) } }
-    val freeStorage = remember { StatFs(context.filesDir.absolutePath).availableBytes }
+    var refreshCount by remember { mutableIntStateOf(0) }
+    val memory = remember(refreshCount) { ActivityManager.MemoryInfo().also { manager.getMemoryInfo(it) } }
+    val freeStorage = remember(refreshCount) { StatFs(context.filesDir.absolutePath).availableBytes }
     Text("Producător: ${Build.MANUFACTURER}")
     Text("Model: ${Build.MODEL}")
     Text("Android: ${Build.VERSION.RELEASE}")
@@ -336,6 +337,16 @@ private fun DeviceInfo() {
     Text("RAM total: ${memory.totalMem / (1024L * 1024L)} MiB")
     Text("RAM disponibil la deschidere: ${memory.availMem / (1024L * 1024L)} MiB")
     Text("Spațiu liber: ${freeStorage / (1024L * 1024L)} MiB")
+    Text("Prag memorie redusă: ${memory.threshold / (1024L * 1024L)} MiB")
+    if (memory.lowMemory) {
+        Text("Atenție: Android raportează presiune ridicată asupra memoriei RAM.",
+            color = MaterialTheme.colorScheme.error)
+    }
+    OutlinedButton(onClick = { refreshCount++ }) {
+        Icon(Icons.Filled.Refresh, contentDescription = null)
+        Spacer(Modifier.width(8.dp))
+        Text("Actualizează RAM și stocare")
+    }
 }
 
 @Composable
