@@ -174,12 +174,14 @@ static jstring generate_impl(JNIEnv* env, jstring prompt, jint max_tokens, jobje
         callbackClass = env->GetObjectClass(callback);
         if (!callbackClass) {
             llama_sampler_free(sampler);
+            llama_memory_clear(llama_get_memory(context), true);
             return fail(env, "Streaming callback unavailable");
         }
         callbackMethod = env->GetMethodID(callbackClass, "invoke", "(Ljava/lang/Object;)Ljava/lang/Object;");
         if (!callbackMethod) {
             env->DeleteLocalRef(callbackClass);
             llama_sampler_free(sampler);
+            llama_memory_clear(llama_get_memory(context), true);
             return nullptr;
         }
     }
