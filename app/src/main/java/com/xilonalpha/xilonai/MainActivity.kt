@@ -1000,7 +1000,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
                 val memoryAfter = InferenceProfiler.snapshot()
                 val completed = cleanedResult.isSuccess && !stopRequested.get()
                 val nextHistory = if (completed)
-                    completeHistorySnapshot + (submitted to cleanedResult.getOrThrow())
+                    (completeHistorySnapshot + (submitted to cleanedResult.getOrThrow())).takeLast(100)
                 else emptyList()
                 val saved = if (completed) runCatching {
                     LocalConversationStore.save(context, modelSnapshot, nextHistory)
