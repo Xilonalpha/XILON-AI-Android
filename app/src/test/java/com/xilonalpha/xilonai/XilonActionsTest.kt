@@ -80,4 +80,11 @@ class XilonActionsTest {
             XilonActions.propose("caută pe youtube: jazz relaxant")?.kind)
         assertNull(XilonActions.propose("Cum funcționează căutarea YouTube?"))
     }
+    @Test fun negatedCommandsDoNotTriggerDeviceActions() {
+        assertNull(XilonActions.propose("nu pornește muzica"))
+        assertNull(XilonActions.propose("te rog nu mărește volumul"))
+        assertNull(XilonActions.propose("do not open settings"))
+        assertEquals(XilonActions.Kind.SHARE_MESSAGE,
+            XilonActions.propose("trimite pe whatsapp: Nu porni muzica")?.kind)
+    }
 }
