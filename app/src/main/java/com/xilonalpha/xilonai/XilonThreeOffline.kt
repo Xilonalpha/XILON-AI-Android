@@ -45,7 +45,7 @@ object XilonThreeOffline {
 
         // Insert once, before user scripts. Import maps must precede module execution.
         val loader = buildString {
-            if (usesModule && !usesClassic) {
+            if (usesModule) {
                 append("""<script src="https://xilon-preview.invalid/three.min.js"></script>""")
             }
             append("""<script src="https://xilon-preview.invalid/GLTFExporter.js"></script>""")

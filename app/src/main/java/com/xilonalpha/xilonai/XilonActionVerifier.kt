@@ -77,8 +77,8 @@ object XilonActionVerifier {
         // assuming every adjustment is exactly one index.
         val verified = when (kind) {
             XilonActions.Kind.SET_VOLUME -> expected == after
-            XilonActions.Kind.VOLUME_UP -> before != null && after >= before
-            XilonActions.Kind.VOLUME_DOWN -> before != null && after <= before
+            XilonActions.Kind.VOLUME_UP -> before != null && (after > before || before == max && after == max)
+            XilonActions.Kind.VOLUME_DOWN -> before != null && (after < before || before == 0 && after == 0)
             else -> false
         }
         return if (verified) Result(State.VERIFIED,

@@ -42,6 +42,8 @@ object GgufDownloader {
             if ((expectedSha256 == null || hash.equals(expectedSha256, true)) && validGguf(target)) return Result(target, hash)
             check(target.delete()) { "Unable to delete corrupt model" }
         }
+        // Never resume unverified partial bytes across changing resolve/main revisions.
+        if (expectedSha256 == null && partial.exists()) check(partial.delete())
         var offset = partial.takeIf { it.exists() }?.length() ?: 0L
         if (offset > expectedBytes) { check(partial.delete()); offset = 0L }
         val segments = filename.split("/").joinToString("/") {

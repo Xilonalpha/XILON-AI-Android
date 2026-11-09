@@ -49,6 +49,7 @@ object LocalConversationStore {
         }
         val bytes = JSONObject().put("version", 1).put("turns", array)
             .toString().toByteArray(Charsets.UTF_8)
+        require(bytes.size <= MAX_FILE_BYTES) { "Conversation history exceeds 4 MiB" }
         val stream = file.startWrite()
         try {
             stream.write(bytes)
