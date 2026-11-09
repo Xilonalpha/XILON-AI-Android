@@ -8,6 +8,13 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
@@ -19,12 +26,28 @@ import java.io.ByteArrayInputStream
  */
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-fun XilonHtmlPreview(html: String, onSceneGlb: ((ByteArray?, String?) -> Unit)? = null) {
+fun XilonHtmlPreview(html: String, onSceneGlb: ((ByteArray?, String?) -> Unit)? = null, onSceneObj: ((String?, String?) -> Unit)? = null) {
+    var currentWebView by remember { mutableStateOf<WebView?>(null) }
+    Column {
+    if (onSceneObj != null) OutlinedButton(onClick = {
+        currentWebView?.evaluateJavascript(XilonSceneObj.javascript) { encoded ->
+            runCatching {
+                val decoded = org.json.JSONTokener(encoded).nextValue() as String
+                val payload = JSONObject(decoded)
+                val obj = payload.optString("obj")
+                if (obj.isNotBlank()) {
+                    require(obj.length <= 8_000_000) { "OBJ prea mare." }
+                    onSceneObj(obj, null)
+                } else onSceneObj(null, payload.optString("error", "Export OBJ eșuat"))
+            }.onFailure { onSceneObj(null, "Export OBJ eșuat: ${it.message}") }
+        } ?: onSceneObj(null, "Previzualizarea nu este pregătită.")
+    }) { Text("Exportă scena OBJ") }
     AndroidView(
         modifier = Modifier.fillMaxSize(),
         factory = { context ->
             WebView(context).apply {
                 tag = html
+                currentWebView = this
                 settings.javaScriptEnabled = true
                 setOnLongClickListener {
                     if (onSceneGlb != null) {
@@ -114,6 +137,8 @@ fun XilonHtmlPreview(html: String, onSceneGlb: ((ByteArray?, String?) -> Unit)? 
             view.stopLoading()
             view.loadUrl("about:blank")
             view.destroy()
+            currentWebView = null
         }
     )
+    }
 }
