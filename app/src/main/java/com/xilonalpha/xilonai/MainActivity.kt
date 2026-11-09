@@ -766,7 +766,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
                             }
                         }
                     }) { Icon(Icons.Filled.PlayArrow, null); Spacer(Modifier.width(6.dp)); Text(if (loadingModel == model.name) "Se încarcă…" else "Încarcă pentru chat") }
-                    TextButton(onClick = { confirmDelete = model.name }) { Icon(Icons.Filled.DeleteOutline, null); Spacer(Modifier.width(6.dp)); Text("Șterge modelul") }
+                    TextButton(enabled = !busy && !importBusy, onClick = { confirmDelete = model.name }) { Icon(Icons.Filled.DeleteOutline, null); Spacer(Modifier.width(6.dp)); Text("Șterge modelul") }
                 }
             }
         }
@@ -1062,11 +1062,14 @@ private fun InstalledModelsScreen(toolsVisible: Boolean) {
             title = { Text("Ștergere model") },
             text = { Text("Ștergi definitiv fișierul $filename de pe telefon?") },
             confirmButton = {
-                TextButton(onClick = {
+                TextButton(enabled = !busy && !importBusy, onClick = {
                     if (filename == activeModel) {
                         LocalLlama.unload()
                         activeModel = ""
                         chatHistory = emptyList()
+                        response = ""
+                        pendingPrompt = null
+                        showFullHistory = false
                     }
                     InstalledModels.delete(context, filename)
                     confirmDelete = null
