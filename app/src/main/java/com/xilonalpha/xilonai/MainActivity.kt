@@ -1070,7 +1070,14 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
                         }
                     }
                 }
-                val cleanedResult = result.map { XilonResponseBoundary.clean(it) }
+                val cleanedResult = result.map { raw ->
+                    XilonResponseBoundary.clean(raw).ifBlank {
+                        if (raw.isNotBlank())
+                            "Modelul a generat doar text intern, fără răspuns final. " +
+                                "Încearcă modul de răspuns rapid (fără raționament) sau un model instruct compatibil."
+                        else ""
+                    }
+                }
                 val elapsed = android.os.SystemClock.elapsedRealtime() - startedAt
                 val tokenCount = cleanedResult.getOrNull()?.let { runCatching { LocalLlama.countTokens(it) }.getOrNull() }
                 val timings = runCatching { LocalLlama.lastTimings() }.getOrNull()
