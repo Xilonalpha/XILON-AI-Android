@@ -1108,6 +1108,14 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
             }
             LinearProgressIndicator(Modifier.fillMaxWidth())
             if (showGenerationDetails) {
+                if (rawCharacters >= 512 && generatedCharacters == 0) {
+                    Text(
+                        "Modelul generează încă text intern (posibil <think>), fără răspuns afișabil. " +
+                            "Poți opri generarea sau încerca un model/mod fără raționament extins.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
                 Text("Text brut: $rawCharacters · Răspuns vizibil: $generatedCharacters",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
