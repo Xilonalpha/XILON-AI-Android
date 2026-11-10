@@ -62,6 +62,8 @@ object XilonMusicVideoExport {
             val muxAudioTrack = writer.addTrack(audioFormat)
             var muxVideoTrack = -1
             var started = false
+            var writtenVideoFrames = 0
+            var writtenAudioSamples = 0
             val info = MediaCodec.BufferInfo()
             val totalFrames = durationSeconds * FPS
             var queued = 0
@@ -104,6 +106,7 @@ object XilonMusicVideoExport {
                                 bytes.position(info.offset)
                                 bytes.limit(info.offset + info.size)
                                 writer.writeSampleData(muxVideoTrack, bytes, info)
+                                writtenVideoFrames++
                             }
                             done = info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0
                             codec.releaseOutputBuffer(out, false)
@@ -124,7 +127,11 @@ object XilonMusicVideoExport {
                     buffer.position(0)
                     buffer.limit(size)
                     writer.writeSampleData(muxAudioTrack, buffer, audioInfo)
+                    writtenAudioSamples++
                     extractor.advance()
+                }
+                check(writtenVideoFrames > 0 && writtenAudioSamples > 0) {
+                    "Exportul nu a produs cadre video și eșantioane audio valide."
                 }
                 writer.stop()
                 started = false
