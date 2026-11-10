@@ -1243,6 +1243,10 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
                     nativeHeapMiB = memoryAfter.nativeHeapKiB / 1024.0
                     rawCharacters = maxOf(rawCharacters, rawResultLength)
                     response = if (stopRequested.get()) "Generare oprită. Text parțial:\n" + cleanedResult.getOrDefault(response) else cleanedResult.getOrElse { "Eroare: ${it.message}" }.ifBlank { emptyAnswerMessage }
+                    if (completed && submittedTask == XilonCore.Task.THREE_D) {
+                        val generatedScene = XilonStructured3d.html(cleanedResult.getOrThrow())
+                        if (generatedScene != null) previewHtml = generatedScene
+                    }
                     if (completed) {
                         chatHistory = nextHistory
                         prompt = ""
