@@ -80,8 +80,20 @@ function renderAt(t){
 }
 window.xilonCaptureFrame=function(ms){
  const t=Math.max(0,Number(ms)||0)/1000;
- renderAt(t);
- return renderer.domElement.toDataURL('image/png');
+ const oldWidth=renderer.domElement.width;
+ const oldHeight=renderer.domElement.height;
+ const oldAspect=camera.aspect;
+ try {
+  renderer.setSize(320,240,false);
+  camera.aspect=320/240;
+  camera.updateProjectionMatrix();
+  renderAt(t);
+  return renderer.domElement.toDataURL('image/png');
+ } finally {
+  renderer.setSize(oldWidth,oldHeight,false);
+  camera.aspect=oldAspect;
+  camera.updateProjectionMatrix();
+ }
 };
 function frame(now){
  const t=musicClock===null?(now-start)/1000:musicClock;
