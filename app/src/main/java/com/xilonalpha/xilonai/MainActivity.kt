@@ -211,7 +211,7 @@ private fun ModelExplorer(onModelDownloaded: () -> Unit) {
                     }
                 } finally { connection.disconnect() }
             } catch (e: Exception) {
-                (context as ComponentActivity).runOnUiThread {
+                android.os.Handler(android.os.Looper.getMainLooper()).post {
                     if (requestVersion.get() == requestId) {
                         error = e.message ?: "Eroare de rețea"
                         loading = false
@@ -522,11 +522,12 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
         } else {
             mp4Exporting = true
             mp4ExportStatus = "Codificare MP4 locală în desfășurare..."
+            val exportScene = scene.copy(bpm = detectedMusicBpm ?: scene.bpm)
             Thread {
                 val result = runCatching {
                     val temp = java.io.File.createTempFile("xilon_music_", ".mp4", context.cacheDir)
                     try {
-                        XilonMusicVideoExport.export(context, soundtrack, scene.copy(bpm = detectedMusicBpm ?: scene.bpm), temp)
+                        XilonMusicVideoExport.export(context, soundtrack, exportScene, temp)
                         XilonMusicVideoExport.verifyExport(temp)
                         context.contentResolver.openOutputStream(destination)?.use { stream ->
                             temp.inputStream().use { it.copyTo(stream) }
