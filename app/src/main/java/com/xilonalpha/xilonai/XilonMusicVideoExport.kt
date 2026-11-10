@@ -66,9 +66,13 @@ object XilonMusicVideoExport {
             val totalFrames = durationSeconds * FPS
             var queued = 0
             var done = false
+            val deadlineMs = android.os.SystemClock.elapsedRealtime() + 180_000L
             val bitmap = Bitmap.createBitmap(WIDTH, HEIGHT, Bitmap.Config.ARGB_8888)
             try {
                 while (!done) {
+                    check(android.os.SystemClock.elapsedRealtime() < deadlineMs) {
+                        "Encoderul H.264 nu a finalizat exportul în 180 de secunde."
+                    }
                     if (queued <= totalFrames) {
                         val idx = codec.dequeueInputBuffer(10_000)
                         if (idx >= 0) {
