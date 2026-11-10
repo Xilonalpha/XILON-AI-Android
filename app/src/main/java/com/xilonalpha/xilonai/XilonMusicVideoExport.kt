@@ -143,6 +143,27 @@ object XilonMusicVideoExport {
         }
     }
 
+    /** Rejects truncated or silent-track MP4 outputs before copying them to user storage. */
+    fun verifyExport(file: File) {
+        require(file.isFile && file.length() > 1024L) { "Fișierul MP4 este gol sau incomplet." }
+        val extractor = MediaExtractor()
+        try {
+            extractor.setDataSource(file.absolutePath)
+            var hasVideo = false
+            var hasAudio = false
+            for (track in 0 until extractor.trackCount) {
+                val mime = extractor.getTrackFormat(track).getString(MediaFormat.KEY_MIME).orEmpty()
+                if (mime == "video/avc") hasVideo = true
+                if (mime == "audio/mp4a-latm") hasAudio = true
+            }
+            require(hasVideo && hasAudio) {
+                "Exportul MP4 nu conține ambele piste H.264 și AAC."
+            }
+        } finally {
+            extractor.release()
+        }
+    }
+
     private fun drawFrame(bitmap: Bitmap, spec: XilonMusicVideo.Scene, t: Double) {
         val canvas = Canvas(bitmap)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
