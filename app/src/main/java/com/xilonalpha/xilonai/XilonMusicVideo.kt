@@ -1,6 +1,6 @@
 package com.xilonalpha.xilonai
 
-/** Compact offline music-video scene. Audio sync and MP4 export are future stages. */
+/** Compact offline music-video scene with local audio clock and procedural MP4 export. */
 object XilonMusicVideo {
     const val instruction = """For an animated music video return ONLY JSON:
 {"type":"music_video","characters":2,"theme":"neon","bpm":120,"duration":30}
