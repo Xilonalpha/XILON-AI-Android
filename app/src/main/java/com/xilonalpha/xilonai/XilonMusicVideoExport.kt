@@ -113,7 +113,7 @@ object XilonMusicVideoExport {
                     val timestamp = extractor.sampleTime
                     if (timestamp >= durationSeconds * 1_000_000L) break
                     require(size <= buffer.capacity()) { "Cadru audio prea mare." }
-                    audioInfo.set(0, size, timestamp, extractor.sampleFlags)
+                    audioInfo.set(0, size, timestamp, if (extractor.sampleFlags and MediaExtractor.SAMPLE_FLAG_SYNC != 0) MediaCodec.BUFFER_FLAG_KEY_FRAME else 0)
                     buffer.position(0)
                     buffer.limit(size)
                     writer.writeSampleData(muxAudioTrack, buffer, audioInfo)
