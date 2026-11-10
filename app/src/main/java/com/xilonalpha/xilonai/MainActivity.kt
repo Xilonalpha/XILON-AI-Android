@@ -509,6 +509,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
         }
         musicPositionMs = null
     }
+    var webGlFrameCapture by remember { mutableStateOf<((Long, (ByteArray?, String?) -> Unit) -> Unit)?>(null) }
     var mp4ExportStatus by remember { mutableStateOf("") }
     var mp4Exporting by remember { mutableStateOf(false) }
     var mp4Scene by remember { mutableStateOf<XilonMusicVideo.Scene?>(null) }
@@ -523,11 +524,28 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
             mp4Exporting = true
             mp4ExportStatus = "Codificare MP4 locală în desfășurare..."
             val exportScene = scene.copy(bpm = detectedMusicBpm ?: scene.bpm)
+            val capture = webGlFrameCapture
             Thread {
                 val result = runCatching {
                     val temp = java.io.File.createTempFile("xilon_music_", ".mp4", context.cacheDir)
                     try {
-                        XilonMusicVideoExport.export(context, soundtrack, exportScene, temp)
+                        XilonMusicVideoExport.export(context, soundtrack, exportScene, temp,
+                            frameProvider = capture?.let { request ->
+                                { ms ->
+                                    val latch = java.util.concurrent.CountDownLatch(1)
+                                    var frameBytes: ByteArray? = null
+                                    var frameError: String? = null
+                                    request(ms) { bytes, err ->
+                                        frameBytes = bytes
+                                        frameError = err
+                                        latch.countDown()
+                                    }
+                                    check(latch.await(5, java.util.concurrent.TimeUnit.SECONDS)) {
+                                        "Captura WebGL a expirat la cadrul $ms ms."
+                                    }
+                                    frameBytes ?: error(frameError ?: "Captura WebGL nu a produs PNG.")
+                                }
+                            })
                         XilonMusicVideoExport.verifyExport(temp)
                         context.contentResolver.openOutputStream(destination)?.use { stream ->
                             temp.inputStream().use { it.copyTo(stream) }
@@ -591,7 +609,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
                     }
                     Spacer(Modifier.height(8.dp))
                     Box(Modifier.fillMaxWidth().height(360.dp)) {
-                        XilonHtmlPreview(html, musicPositionMs = if (XilonMusicVideo.parse(response) != null || chatHistory.lastOrNull()?.second?.let { XilonMusicVideo.parse(it) } != null) musicPositionMs else null, musicBpm = detectedMusicBpm, onSceneGlb = { bytes, error ->
+                        XilonHtmlPreview(html, onCaptureFrame = { webGlFrameCapture = it }, musicPositionMs = if (XilonMusicVideo.parse(response) != null || chatHistory.lastOrNull()?.second?.let { XilonMusicVideo.parse(it) } != null) musicPositionMs else null, musicBpm = detectedMusicBpm, onSceneGlb = { bytes, error ->
                             if (bytes != null) {
                                 pendingGlb = bytes
                                 glbSaver.launch("xilon-scena-three.glb")
