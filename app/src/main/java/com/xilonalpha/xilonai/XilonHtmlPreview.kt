@@ -26,7 +26,7 @@ import java.io.ByteArrayInputStream
  */
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-fun XilonHtmlPreview(html: String, musicPositionMs: Long? = null, musicBpm: Int? = null, onSceneGlb: ((ByteArray?, String?) -> Unit)? = null, onSceneObj: ((String?, String?) -> Unit)? = null) {
+fun XilonHtmlPreview(html: String, musicPositionMs: Long? = null, musicBpm: Int? = null, onCaptureFrame: (((Long, (ByteArray?, String?) -> Unit) -> Unit) -> Unit)? = null, onSceneGlb: ((ByteArray?, String?) -> Unit)? = null, onSceneObj: ((String?, String?) -> Unit)? = null) {
     var currentWebView by remember { mutableStateOf<WebView?>(null) }
     androidx.compose.runtime.LaunchedEffect(musicPositionMs, currentWebView) {
         if (musicPositionMs != null) {
@@ -42,6 +42,32 @@ fun XilonHtmlPreview(html: String, musicPositionMs: Long? = null, musicBpm: Int?
                 "window.xilonSetBpm && window.xilonSetBpm(" + musicBpm + ");", null
             )
         }
+    }
+    androidx.compose.runtime.DisposableEffect(currentWebView, onCaptureFrame) {
+        val webView = currentWebView
+        if (webView != null && onCaptureFrame != null) {
+            onCaptureFrame { timeMs, callback ->
+                webView.post {
+                    webView.evaluateJavascript(
+                        "window.xilonCaptureFrame && window.xilonCaptureFrame(" +
+                            timeMs.coerceAtLeast(0L).toString() + ");"
+                    ) { result ->
+                        runCatching {
+                            val dataUrl = org.json.JSONTokener(result).nextValue() as String
+                            require(dataUrl.startsWith("data:image/png;base64,")) {
+                                "Scena WebGL nu a returnat un cadru PNG."
+                            }
+                            val png = android.util.Base64.decode(
+                                dataUrl.substringAfter(','), android.util.Base64.DEFAULT
+                            )
+                            require(png.size in 1..4_000_000) { "Cadru PNG invalid sau prea mare." }
+                            callback(png, null)
+                        }.onFailure { callback(null, it.message ?: "Captura WebGL a eșuat.") }
+                    }
+                }
+            }
+        }
+        onDispose { }
     }
     Column {
     if (onSceneObj != null) OutlinedButton(onClick = {
