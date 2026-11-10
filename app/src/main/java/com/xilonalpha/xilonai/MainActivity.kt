@@ -527,6 +527,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
                     val temp = java.io.File.createTempFile("xilon_music_", ".mp4", context.cacheDir)
                     try {
                         XilonMusicVideoExport.export(context, soundtrack, scene.copy(bpm = detectedMusicBpm ?: scene.bpm), temp)
+                        XilonMusicVideoExport.verifyExport(temp)
                         context.contentResolver.openOutputStream(destination)?.use { stream ->
                             temp.inputStream().use { it.copyTo(stream) }
                         } ?: error("Destinația MP4 nu poate fi deschisă.")
