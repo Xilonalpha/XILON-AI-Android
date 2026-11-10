@@ -39,6 +39,12 @@ object XilonThreeOffline {
         result = moduleUrl.replace(result) { match ->
             match.groupValues[1] + "three" + match.groupValues[3]
         }
+        // Bundled generated scenes use a relative classic script URL.
+        // Rewrite it to the same trusted virtual origin handled by WebViewClient.
+        result = result.replace(
+            Regex("""(?i)(<script\b[^>]*\bsrc\s*=\s*["'])three(?:\.min)?\.js(["'][^>]*>\s*</script>)"""),
+            "$1https://xilon-preview.invalid/three.min.js$2"
+        )
         val usesModule = bareImport.containsMatchIn(result)
         val usesClassic = result.contains("https://xilon-preview.invalid/three.min.js")
         if (!usesModule && !usesClassic) return injectDiagnostics(result)
