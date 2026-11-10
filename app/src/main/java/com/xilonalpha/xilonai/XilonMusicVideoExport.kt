@@ -39,7 +39,10 @@ object XilonMusicVideoExport {
             val audioFormat = extractor.getTrackFormat(audioTrack)
             val durationUs = if (audioFormat.containsKey(MediaFormat.KEY_DURATION))
                 audioFormat.getLong(MediaFormat.KEY_DURATION) else spec.duration.toLong() * 1_000_000L
-            val durationSeconds = (durationUs / 1_000_000L).coerceIn(1, 60).toInt()
+            val durationSeconds = minOf(
+                (durationUs / 1_000_000L).coerceAtLeast(1L),
+                spec.duration.toLong().coerceIn(5L, 60L)
+            ).toInt()
             val format = MediaFormat.createVideoFormat("video/avc", WIDTH, HEIGHT).apply {
                 setInteger(MediaFormat.KEY_BIT_RATE, 450_000)
                 setInteger(MediaFormat.KEY_FRAME_RATE, FPS)
@@ -92,7 +95,7 @@ object XilonMusicVideoExport {
                             started = true
                         }
                         else -> if (out >= 0) {
-                            if (info.size > 0 && started) {
+                            if (info.size > 0 && started && info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG == 0) {
                                 val bytes = codec.getOutputBuffer(out) ?: error("Encoder output unavailable")
                                 bytes.position(info.offset)
                                 bytes.limit(info.offset + info.size)
@@ -111,7 +114,7 @@ object XilonMusicVideoExport {
                     val size = extractor.readSampleData(buffer, 0)
                     if (size < 0) break
                     val timestamp = extractor.sampleTime
-                    if (timestamp >= durationSeconds * 1_000_000L) break
+                    if (timestamp < 0 || timestamp >= durationSeconds * 1_000_000L) break
                     require(size <= buffer.capacity()) { "Cadru audio prea mare." }
                     audioInfo.set(0, size, timestamp, if (extractor.sampleFlags and MediaExtractor.SAMPLE_FLAG_SYNC != 0) MediaCodec.BUFFER_FLAG_KEY_FRAME else 0)
                     buffer.position(0)
