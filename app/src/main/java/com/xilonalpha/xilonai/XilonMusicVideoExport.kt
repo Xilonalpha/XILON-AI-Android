@@ -26,7 +26,8 @@ object XilonMusicVideoExport {
     private const val HEIGHT = 240
     private const val FPS = 15
 
-    fun export(context: Context, audioUri: Uri, spec: XilonMusicVideo.Scene, output: File) {
+    fun export(context: Context, audioUri: Uri, spec: XilonMusicVideo.Scene, output: File,
+        frameProvider: ((Long) -> ByteArray)? = null) {
         val extractor = MediaExtractor()
         var encoder: MediaCodec? = null
         var muxer: MediaMuxer? = null
@@ -86,7 +87,21 @@ object XilonMusicVideoExport {
                                 codec.queueInputBuffer(idx, 0, 0, totalFrames * 1_000_000L / FPS,
                                     MediaCodec.BUFFER_FLAG_END_OF_STREAM)
                             } else {
-                                drawFrame(bitmap, spec, queued.toDouble() / FPS)
+                                if (frameProvider == null) {
+                                    drawFrame(bitmap, spec, queued.toDouble() / FPS)
+                                } else {
+                                    val png = frameProvider(queued * 1000L / FPS)
+                                    val frame = android.graphics.BitmapFactory.decodeByteArray(png, 0, png.size)
+                                        ?: error("Cadru PNG WebGL invalid.")
+                                    try {
+                                        val canvas = Canvas(bitmap)
+                                        canvas.drawColor(Color.BLACK)
+                                        canvas.drawBitmap(frame, null,
+                                            android.graphics.Rect(0, 0, WIDTH, HEIGHT), Paint(Paint.FILTER_BITMAP_FLAG))
+                                    } finally {
+                                        frame.recycle()
+                                    }
+                                }
                                 val bytes = toYuv420(bitmap, colorFormat == MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar)
                                 val buffer = codec.getInputBuffer(idx) ?: error("Encoder input unavailable")
                                 require(buffer.capacity() >= bytes.size)
