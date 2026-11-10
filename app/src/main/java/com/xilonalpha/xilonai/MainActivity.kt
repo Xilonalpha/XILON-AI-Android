@@ -1187,10 +1187,19 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
                     countTokens = { text -> LocalLlama.countTokens(text) }
                 )
                 var lastUiUpdateAt = 0L
+                var completed3dJson: String? = null
                 val result = if (conversation == null)
                     Result.failure<String>(IllegalArgumentException("Mesajul depășește contextul disponibil."))
                 else runCatching {
                     LocalLlama.generateStreaming(conversation, outputLimit) { partial ->
+                        if (submittedTask == XilonCore.Task.THREE_D && completed3dJson == null) {
+                            val candidate = XilonResponseBoundary.clean(partial)
+                            val json = XilonStructured3d.extract(candidate)
+                            if (json != null) {
+                                completed3dJson = json
+                                LocalLlama.requestStop()
+                            }
+                        }
                         // Avoid flooding Compose's main thread with one full-string
                         // update per decoded token on slower Android devices.
                         val now = android.os.SystemClock.elapsedRealtime()
@@ -1206,7 +1215,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
                         }
                     }
                 }
-                val cleanedResult = result.map { XilonResponseBoundary.clean(it) }
+                val cleanedResult = if (completed3dJson != null) Result.success(completed3dJson!!) else result.map { XilonResponseBoundary.clean(it) }
                 val rawResultLength = result.getOrNull()?.length ?: 0
                 val noVisibleAnswer = cleanedResult.getOrNull().isNullOrBlank()
                 val emptyAnswerMessage = if (rawResultLength > 0)
