@@ -525,12 +525,15 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
             mp4ExportStatus = "Codificare MP4 locală în desfășurare..."
             val exportScene = scene.copy(bpm = detectedMusicBpm ?: scene.bpm)
             val capture = webGlFrameCapture
-            Thread {
+            if (capture == null) {
+                mp4Exporting = false
+                mp4ExportStatus = "Export 3D indisponibil: scena WebGL nu este pregătită."
+            } else Thread {
                 val result = runCatching {
                     val temp = java.io.File.createTempFile("xilon_music_", ".mp4", context.cacheDir)
                     try {
                         XilonMusicVideoExport.export(context, soundtrack, exportScene, temp,
-                            frameProvider = capture?.let { request ->
+                            frameProvider = capture.let { request ->
                                 { ms ->
                                     val latch = java.util.concurrent.CountDownLatch(1)
                                     var frameBytes: ByteArray? = null
