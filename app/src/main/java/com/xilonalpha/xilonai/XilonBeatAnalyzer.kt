@@ -98,11 +98,11 @@ object XilonBeatAnalyzer {
         var bestBpm = 0
         var bestScore = 0.0
         for (bpm in 60..180) {
-            val lag = (3000.0 / bpm).toInt()
+            val lag = kotlin.math.round(3000.0 / bpm).toInt()
             var score = 0.0
             for (i in lag until onset.size) score += onset[i] * onset[i - lag]
             score /= (onset.size - lag)
-            if (score > bestScore) {
+            if (score > bestScore + 1e-12 || (kotlin.math.abs(score - bestScore) <= 1e-12 && kotlin.math.abs(bpm - 120) < kotlin.math.abs(bestBpm - 120))) {
                 bestScore = score
                 bestBpm = bpm
             }
