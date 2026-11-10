@@ -509,6 +509,39 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
         }
         musicPositionMs = null
     }
+    var mp4ExportStatus by remember { mutableStateOf("") }
+    var mp4Exporting by remember { mutableStateOf(false) }
+    var mp4Scene by remember { mutableStateOf<XilonMusicVideo.Scene?>(null) }
+    val mp4Saver = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("video/mp4")
+    ) { destination ->
+        val soundtrack = selectedMusicUri
+        val scene = mp4Scene
+        if (destination == null || soundtrack == null || scene == null) {
+            mp4ExportStatus = "Exportul MP4 a fost anulat."
+        } else {
+            mp4Exporting = true
+            mp4ExportStatus = "Codificare MP4 locală în desfășurare..."
+            Thread {
+                val result = runCatching {
+                    val temp = java.io.File.createTempFile("xilon_music_", ".mp4", context.cacheDir)
+                    try {
+                        XilonMusicVideoExport.export(context, soundtrack, scene, temp)
+                        context.contentResolver.openOutputStream(destination)?.use { stream ->
+                            temp.inputStream().use { it.copyTo(stream) }
+                        } ?: error("Destinația MP4 nu poate fi deschisă.")
+                    } finally { temp.delete() }
+                }
+                (context as ComponentActivity).runOnUiThread {
+                    mp4Exporting = false
+                    mp4ExportStatus = result.fold(
+                        { "Videoclip MP4 cu sunet salvat." },
+                        { "Export MP4 eșuat: ${it.message}" }
+                    )
+                }
+            }.start()
+        }
+    }
     var previewHtml by remember { mutableStateOf<String?>(null) }
     previewHtml?.let { html ->
         AlertDialog(
@@ -522,6 +555,17 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
                         OutlinedButton(onClick = { musicPicker.launch(arrayOf("audio/*")) }) {
                             Text(if (selectedMusicUri == null) "Alege melodia locală" else "Schimbă melodia")
                         }
+                        if (selectedMusicUri != null) {
+                            OutlinedButton(
+                                enabled = !mp4Exporting,
+                                onClick = {
+                                    mp4Scene = XilonMusicVideo.parse(response)
+                                        ?: chatHistory.lastOrNull()?.second?.let { XilonMusicVideo.parse(it) }
+                                    if (mp4Scene != null) mp4Saver.launch("xilon-videoclip.mp4")
+                                }
+                            ) { Text(if (mp4Exporting) "Se exportă MP4..." else "Exportă MP4 cu sunet (AAC)") }
+                        }
+                        if (mp4ExportStatus.isNotBlank()) Text(mp4ExportStatus)
                         if (beatAnalysisStatus.isNotBlank()) Text(beatAnalysisStatus)
                         if (musicPlayer != null) {
                             Row {
