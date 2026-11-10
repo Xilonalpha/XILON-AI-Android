@@ -612,7 +612,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
                     }
                     Spacer(Modifier.height(8.dp))
                     Box(Modifier.fillMaxWidth().height(360.dp)) {
-                        XilonHtmlPreview(html, onCaptureFrame = { webGlFrameCapture = it }, musicPositionMs = if (XilonMusicVideo.parse(response) != null || chatHistory.lastOrNull()?.second?.let { XilonMusicVideo.parse(it) } != null) musicPositionMs else null, musicBpm = detectedMusicBpm, onSceneGlb = { bytes, error ->
+                        XilonHtmlPreview(html, onCaptureFrame = { webGlFrameCapture = it }, musicPositionMs = if (!mp4Exporting && (XilonMusicVideo.parse(response) != null || chatHistory.lastOrNull()?.second?.let { XilonMusicVideo.parse(it) } != null)) musicPositionMs else null, musicBpm = detectedMusicBpm, onSceneGlb = { bytes, error ->
                             if (bytes != null) {
                                 pendingGlb = bytes
                                 glbSaver.launch("xilon-scena-three.glb")
