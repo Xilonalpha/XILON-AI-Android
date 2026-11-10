@@ -28,6 +28,7 @@ import java.io.ByteArrayInputStream
 @Composable
 fun XilonHtmlPreview(html: String, musicPositionMs: Long? = null, musicBpm: Int? = null, onCaptureFrame: (((Long, (ByteArray?, String?) -> Unit) -> Unit) -> Unit)? = null, onSceneGlb: ((ByteArray?, String?) -> Unit)? = null, onSceneObj: ((String?, String?) -> Unit)? = null) {
     var currentWebView by remember { mutableStateOf<WebView?>(null) }
+    var previewError by remember(html) { mutableStateOf("") }
     androidx.compose.runtime.LaunchedEffect(musicPositionMs, currentWebView) {
         if (musicPositionMs != null) {
             currentWebView?.evaluateJavascript(
@@ -70,6 +71,9 @@ fun XilonHtmlPreview(html: String, musicPositionMs: Long? = null, musicBpm: Int?
         onDispose { }
     }
     Column {
+    if (previewError.isNotBlank()) {
+        Text("Diagnostic 3D: $previewError", color = androidx.compose.material3.MaterialTheme.colorScheme.error)
+    }
     if (onSceneObj != null) OutlinedButton(onClick = {
         currentWebView?.evaluateJavascript(XilonSceneObj.javascript) { encoded ->
             runCatching {
@@ -127,6 +131,29 @@ fun XilonHtmlPreview(html: String, musicPositionMs: Long? = null, musicBpm: Int?
                 settings.javaScriptCanOpenWindowsAutomatically = false
                 settings.setSupportMultipleWindows(false)
                 webViewClient = object : WebViewClient() {
+                    override fun onPageFinished(view: WebView?, url: String?) {
+                        super.onPageFinished(view, url)
+                        view?.evaluateJavascript(
+                            "(function(){return JSON.stringify({three:typeof THREE!=='undefined'," +
+                                "webgl:(function(){try{var c=document.createElement('canvas');" +
+                                "return !!(c.getContext('webgl2')||c.getContext('webgl'));}catch(e){return false}})()," +
+                                "canvas:!!document.querySelector('canvas')," +
+                                "error:(document.getElementById('xilon-preview-error')||{}).textContent||''});})()"
+                        ) { encoded ->
+                            val diagnostics = runCatching {
+                                val value = org.json.JSONTokener(encoded).nextValue() as String
+                                org.json.JSONObject(value)
+                            }.getOrNull()
+                            previewError = when {
+                                diagnostics == null -> "Nu se pot citi diagnosticele WebView."
+                                !diagnostics.optBoolean("three") -> "Biblioteca Three.js nu s-a încărcat."
+                                !diagnostics.optBoolean("webgl") -> "WebGL indisponibil pe acest dispozitiv."
+                                diagnostics.optString("error").isNotBlank() -> diagnostics.optString("error")
+                                !diagnostics.optBoolean("canvas") -> "Scena nu a creat un canvas."
+                                else -> ""
+                            }
+                        }
+                    }
                     override fun shouldOverrideUrlLoading(
                         view: WebView?, request: WebResourceRequest?
                     ): Boolean = true
