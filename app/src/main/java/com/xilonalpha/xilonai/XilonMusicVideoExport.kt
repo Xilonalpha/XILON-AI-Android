@@ -75,6 +75,12 @@ object XilonMusicVideoExport {
             var done = false
             val deadlineMs = android.os.SystemClock.elapsedRealtime() + 180_000L
             val bitmap = Bitmap.createBitmap(WIDTH, HEIGHT, Bitmap.Config.ARGB_8888)
+            val frameCanvas = Canvas(bitmap)
+            val frameBounds = android.graphics.Rect(0, 0, WIDTH, HEIGHT)
+            val framePaint = Paint(Paint.FILTER_BITMAP_FLAG)
+            val pngOptions = android.graphics.BitmapFactory.Options().apply {
+                inPreferredConfig = Bitmap.Config.RGB_565
+            }
             try {
                 while (!done) {
                     check(android.os.SystemClock.elapsedRealtime() < deadlineMs) {
@@ -91,13 +97,11 @@ object XilonMusicVideoExport {
                                     drawFrame(bitmap, spec, queued.toDouble() / FPS)
                                 } else {
                                     val png = frameProvider(queued * 1000L / FPS)
-                                    val frame = android.graphics.BitmapFactory.decodeByteArray(png, 0, png.size)
+                                    val frame = android.graphics.BitmapFactory.decodeByteArray(png, 0, png.size, pngOptions)
                                         ?: error("Cadru PNG WebGL invalid.")
                                     try {
-                                        val canvas = Canvas(bitmap)
-                                        canvas.drawColor(Color.BLACK)
-                                        canvas.drawBitmap(frame, null,
-                                            android.graphics.Rect(0, 0, WIDTH, HEIGHT), Paint(Paint.FILTER_BITMAP_FLAG))
+                                        frameCanvas.drawColor(Color.BLACK)
+                                        frameCanvas.drawBitmap(frame, null, frameBounds, framePaint)
                                     } finally {
                                         frame.recycle()
                                     }
