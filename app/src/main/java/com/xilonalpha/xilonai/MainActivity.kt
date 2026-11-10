@@ -200,7 +200,7 @@ private fun ModelExplorer(onModelDownloaded: () -> Unit) {
                             item.optString("lastModified")
                         )
                     }
-                    (context as ComponentActivity).runOnUiThread {
+                    android.os.Handler(android.os.Looper.getMainLooper()).post {
                         if (requestVersion.get() == requestId) {
                             models = parsed
                             inspectionVersion.incrementAndGet()
@@ -526,7 +526,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
                 val result = runCatching {
                     val temp = java.io.File.createTempFile("xilon_music_", ".mp4", context.cacheDir)
                     try {
-                        XilonMusicVideoExport.export(context, soundtrack, scene, temp)
+                        XilonMusicVideoExport.export(context, soundtrack, scene.copy(bpm = detectedMusicBpm ?: scene.bpm), temp)
                         context.contentResolver.openOutputStream(destination)?.use { stream ->
                             temp.inputStream().use { it.copyTo(stream) }
                         } ?: error("Destinația MP4 nu poate fi deschisă.")
