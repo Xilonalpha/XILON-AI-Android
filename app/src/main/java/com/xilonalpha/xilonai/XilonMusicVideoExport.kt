@@ -43,17 +43,21 @@ object XilonMusicVideoExport {
                 (durationUs / 1_000_000L).coerceAtLeast(1L),
                 spec.duration.toLong().coerceIn(5L, 60L)
             ).toInt()
+            encoder = MediaCodec.createEncoderByType("video/avc")
+            val codec = encoder
+            val supported = codec.codecInfo.getCapabilitiesForType("video/avc").colorFormats
+            val colorFormat = when {
+                supported.contains(MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar) ->
+                    MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar
+                supported.contains(MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar) ->
+                    MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar
+                else -> error("Encoderul H.264 nu acceptă YUV420 planar sau semi-planar.")
+            }
             val format = MediaFormat.createVideoFormat("video/avc", WIDTH, HEIGHT).apply {
                 setInteger(MediaFormat.KEY_BIT_RATE, 450_000)
                 setInteger(MediaFormat.KEY_FRAME_RATE, FPS)
                 setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 2)
-                setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar)
-            }
-            encoder = MediaCodec.createEncoderByType("video/avc")
-            val codec = encoder
-            val supported = codec.codecInfo.getCapabilitiesForType("video/avc").colorFormats
-            require(supported.contains(MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar)) {
-                "Encoderul acestui telefon nu acceptă NV12; exportul necesită alt format YUV."
+                setInteger(MediaFormat.KEY_COLOR_FORMAT, colorFormat)
             }
             codec.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
             codec.start()
@@ -83,7 +87,7 @@ object XilonMusicVideoExport {
                                     MediaCodec.BUFFER_FLAG_END_OF_STREAM)
                             } else {
                                 drawFrame(bitmap, spec, queued.toDouble() / FPS)
-                                val bytes = toNv12(bitmap)
+                                val bytes = toYuv420(bitmap, colorFormat == MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar)
                                 val buffer = codec.getInputBuffer(idx) ?: error("Encoder input unavailable")
                                 require(buffer.capacity() >= bytes.size)
                                 buffer.clear()
@@ -200,7 +204,7 @@ object XilonMusicVideoExport {
         }
     }
 
-    private fun toNv12(bitmap: Bitmap): ByteArray {
+    private fun toYuv420(bitmap: Bitmap, planar: Boolean): ByteArray {
         val pixels = IntArray(WIDTH * HEIGHT)
         bitmap.getPixels(pixels, 0, WIDTH, 0, 0, WIDTH, HEIGHT)
         val out = ByteArray(WIDTH * HEIGHT * 3 / 2)
@@ -213,9 +217,15 @@ object XilonMusicVideoExport {
             if (y % 2 == 0 && x % 2 == 0) {
                 val u = ((-38 * r - 74 * g + 112 * b + 128) shr 8) + 128
                 val v = ((112 * r - 94 * g - 18 * b + 128) shr 8) + 128
-                val idx = uvOffset + y / 2 * WIDTH + x
-                out[idx] = u.coerceIn(0, 255).toByte()
-                out[idx + 1] = v.coerceIn(0, 255).toByte()
+                if (planar) {
+                    val idx = (y / 2) * (WIDTH / 2) + x / 2
+                    out[uvOffset + idx] = u.coerceIn(0, 255).toByte()
+                    out[uvOffset + WIDTH * HEIGHT / 4 + idx] = v.coerceIn(0, 255).toByte()
+                } else {
+                    val idx = uvOffset + y / 2 * WIDTH + x
+                    out[idx] = u.coerceIn(0, 255).toByte()
+                    out[idx + 1] = v.coerceIn(0, 255).toByte()
+                }
             }
         }
         return out
