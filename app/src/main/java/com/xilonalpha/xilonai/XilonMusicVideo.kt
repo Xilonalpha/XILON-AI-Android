@@ -37,7 +37,7 @@ Do not output HTML, JavaScript or markdown."""
 const scene=new THREE.Scene();scene.background=new THREE.Color('$bg');
 const camera=new THREE.PerspectiveCamera(48,innerWidth/innerHeight,.1,100);
 camera.position.set(0,2.1,8);
-const renderer=new THREE.WebGLRenderer({antialias:true});
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
 renderer.setSize(innerWidth,innerHeight);document.body.appendChild(renderer.domElement);
 scene.add(new THREE.HemisphereLight(0xffffff,0x404080,2));
 const light=new THREE.PointLight(0xff77dd,70);light.position.set(1,5,3);scene.add(light);
@@ -65,8 +65,7 @@ window.xilonSetBpm=function(value){if(Number.isFinite(value)&&value>=60&&value<=
 const start=performance.now();
 let musicClock=null;
 window.xilonSetMusicTime=function(ms){musicClock=Math.max(0,ms)/1000};
-function frame(now){
- const t=musicClock===null?(now-start)/1000:musicClock;
+function renderAt(t){
  const beat=t*bpm*Math.PI/30;
  dancers.forEach((d,i)=>{
   d.g.position.y=.12*Math.abs(Math.sin(beat+i));
@@ -78,6 +77,15 @@ function frame(now){
  });
  light.intensity=45+25*Math.abs(Math.sin(beat));
  renderer.render(scene,camera);
+}
+window.xilonCaptureFrame=function(ms){
+ const t=Math.max(0,Number(ms)||0)/1000;
+ renderAt(t);
+ return renderer.domElement.toDataURL('image/png');
+};
+function frame(now){
+ const t=musicClock===null?(now-start)/1000:musicClock;
+ renderAt(t);
  requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
