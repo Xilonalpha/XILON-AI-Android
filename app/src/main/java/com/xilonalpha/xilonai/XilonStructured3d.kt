@@ -16,6 +16,10 @@ For a human head choose type face. This produces a stylized procedural face, not
         val end = text.indexOf('}', start + 1)
         if (start < 0 || end < 0 || end - start > 1200) return null
         val raw = text.substring(start, end + 1)
+        // Only accept a complete JSON object: never stop inference on partial fields.
+        val parsed = runCatching { org.json.JSONObject(raw) }.getOrNull() ?: return null
+        if (!parsed.has("type") || !parsed.has("color") || !parsed.has("width") ||
+            !parsed.has("height") || !parsed.has("eyeColor") || !parsed.has("hairColor")) return null
         val type = Regex(""""type"\s*:\s*"(face|sphere|cube|cylinder|cone)"""")
             .find(raw)?.groupValues?.get(1) ?: return null
         fun color(name: String, fallback: String): String {
