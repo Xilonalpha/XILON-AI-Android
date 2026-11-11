@@ -38,4 +38,24 @@ class XilonThreeOfflineTest {
         assertTrue(three >= 0 && exporter > three)
     }
 
+    @Test fun generatedStructuredFaceLoadsBundledThreeOffline() {
+        val generated = XilonStructured3d.html(
+            """{"type":"face","color":"#d8a47f","eyeColor":"#46352c","hairColor":"#35251e","width":1.0,"height":1.0}"""
+        ) ?: error("Scena 3D nu a fost generată")
+        val prepared = XilonThreeOffline.prepare(generated)
+        val localScript = """<script src="https://xilon-preview.invalid/three.min.js"></script>"""
+        assertTrue(prepared.contains(localScript))
+        assertTrue(prepared.indexOf(localScript) < prepared.indexOf("const scene=new THREE.Scene()"))
+        assertTrue(prepared.contains("xilon-preview-error"))
+        assertTrue(!prepared.contains("""src="three.min.js" """.trim()))
+    }
+
+    @Test fun relativeThreeScriptIsRewrittenOnlyOnce() {
+        val html = """<html><head></head><body><script src="three.min.js"></script><script>new THREE.Scene()</script></body></html>"""
+        val prepared = XilonThreeOffline.prepare(html)
+        val marker = """src="https://xilon-preview.invalid/three.min.js" """
+        assertEquals(1, Regex(Regex.escape(marker.trim())).findAll(prepared).count())
+        assertTrue(prepared.indexOf("three.min.js") < prepared.indexOf("new THREE.Scene()"))
+    }
+
 }
