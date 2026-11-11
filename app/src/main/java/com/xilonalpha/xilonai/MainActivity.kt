@@ -1215,7 +1215,7 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
                     LocalLlama.generateStreaming(conversation, outputLimit) { partial ->
                         if (submittedTask == XilonCore.Task.THREE_D && completed3dJson == null) {
                             val candidate = XilonResponseBoundary.clean(partial)
-                            val json = XilonStructured3d.extract(candidate)
+                            val json = XilonStructured3d.extractComplete(candidate)
                             if (json != null) {
                                 completed3dJson = json
                                 LocalLlama.requestStop()
