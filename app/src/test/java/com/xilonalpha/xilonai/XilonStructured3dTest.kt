@@ -23,4 +23,15 @@ class XilonStructured3dTest {
         val html = XilonStructured3d.html("""{"type":"sphere","color":"#ffffff"} <script>alert(1)</script>""")!!
         assertFalse(html.contains("alert(1)"))
     }
+    @Test fun streamingWaitsForAllFaceFields() {
+        val partial = """{"type":"face","color":"#d8a47f","eyeColor":"#46352c"}"""
+        assertNull(XilonStructured3d.extractComplete(partial))
+        val complete = """{"type":"face","color":"#d8a47f","eyeColor":"#46352c","hairColor":"#35251e","width":1.0,"height":1.0}"""
+        assertNotNull(XilonStructured3d.extractComplete(complete))
+    }
+
+    @Test fun streamingRejectsIncompleteObject() {
+        assertNull(XilonStructured3d.extractComplete("""{"type":"face","color":"#d8a47f","eyeColor":"#46352c","hairColor":"#35251e","width":1.0,"height":1.0"""))
+    }
+
 }
