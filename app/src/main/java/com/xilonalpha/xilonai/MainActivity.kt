@@ -744,6 +744,27 @@ private fun InstalledModelsScreen(toolsVisible: Boolean, downloadRevision: Int) 
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+    val musicVideoRequested = prompt.contains("videoclip", ignoreCase = true) ||
+        prompt.contains("music video", ignoreCase = true) ||
+        prompt.contains("video muzical", ignoreCase = true)
+    if (musicVideoRequested || selectedMusicUri != null) {
+        androidx.compose.material3.Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Videoclip muzical local", style = MaterialTheme.typography.titleMedium)
+                OutlinedButton(onClick = { musicPicker.launch(arrayOf("audio/*")) }) {
+                    Text(if (selectedMusicUri == null) "Adaugă melodia de pe telefon" else "Schimbă melodia")
+                }
+                if (selectedMusicUri != null) {
+                    Text("Melodie selectată: " + (selectedMusicUri?.lastPathSegment ?: "fișier audio"))
+                    Text("Melodia rămâne pe dispozitiv. Exportul MP4 acceptă momentan AAC/M4A.",
+                        style = MaterialTheme.typography.bodySmall)
+                } else {
+                    Text("Selectează o melodie înainte de a genera videoclipul.",
+                        style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+    }
 
     if (!toolsVisible) {
     if (activeModel.isBlank()) {
