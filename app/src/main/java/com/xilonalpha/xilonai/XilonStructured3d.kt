@@ -81,7 +81,9 @@ const scene=new THREE.Scene();scene.background=new THREE.Color(0x101522);
 const camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.1,100);
 camera.position.set(0,0,5.8);
 const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
 renderer.setSize(innerWidth,innerHeight);document.body.appendChild(renderer.domElement);
+window.xilonSceneReady=false;
 scene.add(new THREE.HemisphereLight(0xffffff,0x46516b,2));
 const light=new THREE.DirectionalLight(0xffffff,2);light.position.set(3,4,5);scene.add(light);
 const root=new THREE.Group();scene.add(root);
@@ -133,6 +135,8 @@ renderer.domElement.addEventListener('pointerdown',e=>{dragging=true;px=e.client
 renderer.domElement.addEventListener('pointerup',()=>dragging=false);
 renderer.domElement.addEventListener('pointermove',e=>{if(dragging){root.rotation.y+=(e.clientX-px)*.01;root.rotation.x+=(e.clientY-py)*.01;px=e.clientX;py=e.clientY}});
 function animate(){requestAnimationFrame(animate);renderer.render(scene,camera)}animate();
+window.xilonSceneReady=true;
+window.xilonSceneDiagnostics=function(){return JSON.stringify({ready:window.xilonSceneReady,meshes:root.children.length,canvas:!!renderer.domElement,width:renderer.domElement.width,height:renderer.domElement.height});};
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 } catch(error) { xilonFallback(error && error.message || 'Eroare WebGL'); }
 </script></body></html>
