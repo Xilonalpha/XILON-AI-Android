@@ -105,6 +105,23 @@ if(spec.type==='face'){
  mouth.rotation.z=Math.PI;
  const hair=mesh(new THREE.SphereGeometry(.84,24,16),spec.hairColor,0,.62,-.02);
  hair.scale.set(1,.48,.91);
+ // Additional facial features make the generated face recognizable from
+ // front and three-quarter angles without requiring external 3D assets.
+ const neck=mesh(new THREE.CylinderGeometry(.30,.38,.58,24),skin,0,-1.24,-.13);
+ const chin=mesh(new THREE.SphereGeometry(.35,20,16),skin,0,-.78,.31);
+ chin.scale.set(1,.52,.82);
+ for(const side of [-1,1]){
+  const ear=mesh(new THREE.SphereGeometry(.20,20,14),skin,side*.81,-.12,-.02);
+  ear.scale.set(.55,1.35,.55);
+  const inner=mesh(new THREE.SphereGeometry(.095,16,12),'#a96c5a',side*.89,-.12,.055);
+  inner.scale.set(.35,1.2,.35);
+  const pupil=mesh(new THREE.SphereGeometry(.034,12,10),'#15191d',side*.31,.17,.756);
+  const highlight=mesh(new THREE.SphereGeometry(.012,10,8),'#ffffff',side*.31-.018,.192,.785);
+ }
+ const upperLip=mesh(new THREE.SphereGeometry(.20,20,12),'#a05b62',0,-.49,.625);
+ upperLip.scale.set(1,.17,.35);
+ const lowerLip=mesh(new THREE.SphereGeometry(.18,20,12),'#b36d73',0,-.55,.625);
+ lowerLip.scale.set(1,.16,.35);
 } else {
  const geometries={sphere:new THREE.SphereGeometry(1,32,24),cube:new THREE.BoxGeometry(1.8,1.8,1.8),
  cylinder:new THREE.CylinderGeometry(.8,.8,1.8,32),cone:new THREE.ConeGeometry(1,2,32)};
