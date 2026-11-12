@@ -50,6 +50,33 @@ For a human head choose type face. This produces a stylized procedural face, not
 <style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101522}</style></head>
 <body><script src="three.min.js"></script><script>
 const spec=$spec;
+// When WebGL or the local Three.js script is unavailable, show a visible
+// 2D diagnostic preview instead of leaving the user with a black rectangle.
+function xilonFallback(reason){
+ const c=document.createElement('canvas');
+ c.width=Math.max(320,innerWidth);c.height=Math.max(320,innerHeight);
+ c.style.cssText='width:100%;height:100%;display:block';
+ document.body.appendChild(c);
+ const g=c.getContext('2d');if(!g)return;
+ const x=c.width/2,y=c.height/2,scale=Math.min(c.width,c.height)/3;
+ g.fillStyle='#101522';g.fillRect(0,0,c.width,c.height);
+ if(spec.type==='face'){
+  g.fillStyle=spec.color;g.beginPath();g.ellipse(x,y,scale*.72,scale,0,0,Math.PI*2);g.fill();
+  g.fillStyle=spec.hairColor;g.beginPath();g.ellipse(x,y-scale*.66,scale*.7,scale*.38,0,Math.PI,Math.PI*2);g.fill();
+  for(const dx of [-.3,.3]){
+   g.fillStyle='#ffffff';g.beginPath();g.ellipse(x+dx*scale,y-scale*.15,scale*.17,scale*.11,0,0,Math.PI*2);g.fill();
+   g.fillStyle=spec.eyeColor;g.beginPath();g.arc(x+dx*scale,y-scale*.15,scale*.065,0,Math.PI*2);g.fill();
+  }
+  g.strokeStyle='#8e454d';g.lineWidth=3;g.beginPath();g.arc(x,y+scale*.34,scale*.23,.1,Math.PI-.1);g.stroke();
+ } else {
+  g.fillStyle=spec.color;g.beginPath();g.arc(x,y,scale*.75,0,Math.PI*2);g.fill();
+ }
+ g.fillStyle='#ffffff';g.font='13px sans-serif';
+ g.fillText('Previzualizare 2D (WebGL indisponibil)',12,24);
+ g.fillText(String(reason).slice(0,65),12,c.height-18);
+}
+try {
+ if(typeof THREE==='undefined') throw new Error('Three.js nu a fost încărcat');
 const scene=new THREE.Scene();scene.background=new THREE.Color(0x101522);
 const camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.1,100);
 camera.position.set(0,0,5.8);
@@ -90,6 +117,7 @@ renderer.domElement.addEventListener('pointerup',()=>dragging=false);
 renderer.domElement.addEventListener('pointermove',e=>{if(dragging){root.rotation.y+=(e.clientX-px)*.01;root.rotation.x+=(e.clientY-py)*.01;px=e.clientX;py=e.clientY}});
 function animate(){requestAnimationFrame(animate);renderer.render(scene,camera)}animate();
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+} catch(error) { xilonFallback(error && error.message || 'Eroare WebGL'); }
 </script></body></html>
 """.trimIndent()
     }
